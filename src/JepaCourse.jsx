@@ -581,17 +581,14 @@ function ContrastiveVsRegularized() {
                 <text x={0.38 * 600} y={dataY + 22} fill={C.green} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">data (low E)</text>
                 {!isReg ? (
                   <>
-                    <circle cx={0.72 * 600} cy={48} r="6" fill={C.amber} />
-                    <line x1={0.72*600} y1={70} x2={0.72*600} y2={44} stroke={C.amber} strokeWidth="2" markerEnd="url(#upArrow)" />
-                    <text x={0.72 * 600} y={36} fill={C.amber} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">↑ negative</text>
+                    {/* a single up-arrow: a negative point has its energy pushed up */}
+                    <line x1={0.72 * 600} y1={86} x2={0.72 * 600} y2={56} stroke={C.amber} strokeWidth="2.5" strokeLinecap="round" />
+                    <path d={`M ${0.72 * 600} 48 L ${0.72 * 600 - 6} 60 L ${0.72 * 600 + 6} 60 Z`} fill={C.amber} />
+                    <text x={0.72 * 600} y={102} fill={C.amber} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">negative</text>
                   </>
                 ) : (
                   <text x={510} y={56} fill={C.cyan} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">all else: high</text>
                 )}
-                <defs>
-                  <marker id="upArrow" markerWidth="8" markerHeight="8" refX="4" refY="6" orient="auto">
-                    <path d="M4,0 L8,8 L0,8 Z" fill={C.amber} /></marker>
-                </defs>
               </>
             );
           })()}
@@ -664,7 +661,7 @@ function MaskingStrategyViz() {
           <div className="flex-1 text-[14px] leading-relaxed" style={{ color: C.text }}>
             <p className="mb-3"><span className="font-mono text-[12px]" style={{color:C.cyan}}>context block</span> — scale (0.85, 1.0), unit aspect ratio. Big and spatially distributed, so there's real information to reason from.</p>
             <p className="mb-3"><span className="font-mono text-[12px]" style={{color:C.violet}}>4 target blocks</span> — scale (0.15, 0.2), aspect ratio (0.75, 1.5). Large enough to be <Hi>semantic</Hi> (an object part), not a single texture patch.</p>
-            <p style={{ color: C.textDim }}>Both encoders use ViT on 16×16 patches; the predictor is a <em>narrower</em> ViT. In the paper, a ViT-Huge/14 trains on ImageNet on 16 A100s in &lt;72h.</p>
+            <p style={{ color: C.textDim }}>Both encoders are ViTs operating on fixed-size image patches (the headline ViT-Huge/14 uses 14×14); the predictor is a <em>narrower</em> ViT. In the paper, that ViT-Huge/14 trains on ImageNet on 16 A100s in &lt;72h.</p>
           </div>
         </div>
       </div>
@@ -927,7 +924,7 @@ const TIMELINE = [
     idea: "Compress observations to a latent, learn to predict the next latent, then plan — even 'dream' — inside the learned model. Planning in latent space becomes concrete.", c: "cyan" },
   { yr: "2020–21", t: "BYOL · SimSiam · VICReg", problem: "Contrastive learning needs huge batches of negatives. Can we drop them?",
     idea: "Yes — via EMA teachers + stop-gradients, or explicit variance/covariance regularization. Exactly the anti-collapse machinery JEPA will adopt.", c: "cyan" },
-  { yr: "Jun 2022", t: "A Path Towards Autonomous Machine Intelligence", problem: "LLMs manipulate text statistics but can't model physical reality, plan, or handle uncertainty.",
+  { yr: "Jun 2022", t: "A Path Towards Autonomous Machine Intelligence", problem: "LLMs manipulate text statistics but, in LeCun's view, are far weaker at modeling physical reality, planning over sensory futures, and handling uncertainty.",
     idea: "A six-module agent (perception, world model, cost, actor…) with a Hierarchical JEPA as the world-model engine. The manifesto.", c: "amber" },
   { yr: "2023→2026", t: "I-JEPA → V-JEPA → V-JEPA 2 → LeJEPA → LeWorldModel", problem: "Does the blueprint actually work — and can it become a stable world model?",
     idea: "Images, then video, then a video world model planning real robots zero-shot, then LeJEPA's provable training objective — culminating in LeWorldModel, a stable end-to-end latent world model from pixels. The same year, LeCun leaves Meta to found AMI Labs around this exact bet.", c: "cyan" },
@@ -983,9 +980,9 @@ function DiscoveryTimeline() {
 /* ========================================================================== */
 const MODELS = [
   { id: "ijepa", name: "I-JEPA", year: "2023", domain: "Images", pill: "first real JEPA",
-    blurb: "The first working JEPA. Two Vision Transformers on 16×16 patches plus a narrow predictor. From one image it picks a context block and several large target blocks, predicting each target's representation from context — conditioned on position.",
+    blurb: "The first working JEPA. Two Vision Transformers operating on fixed image patches plus a narrow predictor. From one image it picks a context block and several large target blocks, predicting each target's representation from context — conditioned on position.",
     why: "Large semantic target blocks force the model to capture high-level structure instead of interpolating texture. More compute-efficient than MAE or contrastive methods, and needs no hand-crafted augmentations.",
-    stats: [["3", "networks"], ["ViT", "16×16 patches"], ["EMA", "no negatives"]] },
+    stats: [["3", "networks"], ["ViT-H/14", "14×14 patches"], ["EMA", "no negatives"]] },
   { id: "vjepa", name: "V-JEPA", year: "2024", domain: "Video", pill: "adds time",
     blurb: "The template extended to spacetime. Clips are tokenized into space-time blocks; large tube regions are masked; the predictor infers their embeddings from visible context, with an EMA target encoder.",
     why: "Latent prediction matters even more for video — there are explosively many plausible pixel futures, but how a scene evolves abstractly is tractable. Learns transferable motion + appearance features.",
@@ -999,9 +996,9 @@ const MODELS = [
     why: "No EMA, no stop-gradient, no teacher–student asymmetry — yet stable, collapse-free training across architectures. Turns JEPA from an empirical recipe into a method with provable guarantees, right as the field pivots to world models.",
     stats: [["N(0,I)", "provably optimal"], ["SIGReg", "linear cost"], ["1", "hyperparameter"]] },
   { id: "lewm", name: "LeWorldModel", year: "Mar 2026", domain: "Latent world model from pixels", pill: "the synthesis",
-    blurb: "An action-conditioned world model trained end-to-end from raw pixels with a two-term objective: next-embedding prediction + SIGReg. No pixel reconstruction, no reward, no frozen encoder, no EMA or stop-gradient. A ViT-Tiny encoder (~15M params) maps each frame to a single 192-dim token; a predictor models the dynamics.",
+    blurb: "An action-conditioned world model trained end-to-end from raw pixels with a two-term objective: next-embedding prediction + SIGReg. No pixel reconstruction, no reward, no frozen encoder, no EMA or stop-gradient. A ViT-Tiny encoder (~5M params) maps each frame to a single 192-dim token; a small predictor models the dynamics — about 15M parameters in total.",
     why: "Brings LeJEPA's provable anti-collapse to world modeling, finally making end-to-end pixel training stable and simple — one effective hyperparameter where prior end-to-end methods (PLDM) needed seven loss terms. Plans via CEM from start+goal images in ~1s (≈48× faster than DINO-WM), trains on a single GPU in hours. The model that ties the whole program together.",
-    stats: [["15M", "params · ViT-Tiny"], ["2", "loss terms"], ["~1s", "to plan (vs ~47s)"], ["48×", "faster than DINO-WM"]] },
+    stats: [["~15M", "params (total)"], ["2", "loss terms"], ["~1s", "to plan"], ["48×", "faster than DINO-WM"]] },
 ];
 function ModelExplorer() {
   const C = useTheme();
@@ -1160,7 +1157,7 @@ function Glossary() {
 /*  how many loss terms, how it avoids collapse, planning cost.                 */
 /* ========================================================================== */
 const WORLD_MODELS = [
-  { id: "dinowm", name: "DINO-WM", who: "Zhou et al., 2025", color: "violet",
+  { id: "dinowm", name: "DINO-WM", who: "Zhou et al., 2024", color: "violet",
     encoder: "Frozen DINOv2 (pretrained)", collapse: "Sidesteps it — encoder isn't trained, so it can't collapse",
     loss: "Predictor-only objective", plan: "CEM in latent space (slower — many patch tokens)",
     note: "Proved a reward-free, task-agnostic world model on frozen self-supervised features can plan zero-shot. But you inherit whatever DINOv2 encodes — you can't shape the representation for your task." },
@@ -1173,7 +1170,7 @@ const WORLD_MODELS = [
     loss: "Latent prediction + action conditioning", plan: "CEM / MPC, ~16s per action on a Franka arm",
     note: "Scaled the idea to 1M+ hours of video, then made it controllable with 62h of robot data. The big-model, web-scale end of the spectrum." },
   { id: "lewm", name: "LeWorldModel", who: "Maes, …, LeCun, Balestriero · Mar 2026", color: "green",
-    encoder: "Trained end-to-end from pixels (ViT-Tiny, ~15M params)", collapse: "SIGReg — one regularizer, no EMA, no stop-gradient, no frozen encoder",
+    encoder: "Trained end-to-end from pixels (ViT-Tiny ~5M; ~15M params total)", collapse: "SIGReg — one regularizer, no EMA, no stop-gradient, no frozen encoder",
     loss: "Two terms: next-embedding prediction + SIGReg (effectively one hyperparameter, λ)", plan: "CEM from start+goal images, ~1s (≈48× faster than DINO-WM, ~200× fewer tokens)",
     note: "The synthesis: end-to-end from pixels like PLDM, but stable and simple like a frozen-encoder method — because SIGReg's provably-optimal Gaussian target replaces the whole bag of tricks. Trains on a single GPU in hours." },
 ];
@@ -2266,7 +2263,7 @@ function CourseBody({ dark, setDark }) {
               <span style={{ color: C.textFaint }}># λ is effectively the ONLY hyperparameter to tune</span>
             </div>
             <div className="max-w-[64ch]">
-              <P>The payoff is startling in its modesty. The encoder is a <B>ViT-Tiny</B> — about <Hi>15 million parameters</Hi>, trainable on a single GPU in a few hours. Each frame becomes one 192-dimensional token (roughly 200× fewer than DINO-WM), so planning with the Cross-Entropy Method — encode a start and goal image, search action sequences whose predicted final embedding lands nearest the goal — finishes in about <Hi>one second</Hi> versus DINO-WM's ~47. It beats PLDM by 18% on the Push-T task and stays competitive with DINO-WM even when DINO-WM is handed extra information.</P>
+              <P>The payoff is startling in its modesty. The encoder is a <B>ViT-Tiny</B> (~5 million parameters; about <Hi>15 million</Hi> for the whole model including the predictor), trainable on a single GPU in a few hours. Each frame becomes one 192-dimensional token (roughly 200× fewer than DINO-WM), so planning with the Cross-Entropy Method — encode a start and goal image, search action sequences whose predicted final embedding lands nearest the goal — finishes in about <Hi>one second</Hi>, roughly <Hi>48× faster</Hi> than DINO-WM. It beats PLDM by 18% on the Push-T task and stays competitive with DINO-WM even when DINO-WM is handed extra information.</P>
             </div>
             <Aside tag="Stay honest" color={C.amber}>
               LeWM is not a clean win everywhere. On the <em>simplest</em> environment tested (Two-Room) it underperforms — the authors note SIGReg's isotropic-Gaussian target can be <B>too strong a prior</B> for low-dimensional environments. And like all these methods it still needs offline data with good action coverage. The honest claim is "easier, faster, and more stable," not "universally best."
@@ -2367,7 +2364,7 @@ function CourseBody({ dark, setDark }) {
                 ["V-JEPA 2 paper — arXiv:2506.09985", "https://arxiv.org/abs/2506.09985"],
                 ["Balestriero & LeCun — LeJEPA (2025)", "https://arxiv.org/abs/2511.08544"],
                 ["Maes, …, LeCun & Balestriero — LeWorldModel (2026)", "https://arxiv.org/abs/2603.19312"],
-                ["Zhou et al. — DINO-WM (2025)", "https://arxiv.org/abs/2411.04983"],
+                ["Zhou et al. — DINO-WM (2024)", "https://arxiv.org/abs/2411.04983"],
               ].map(([t, h]) => (
                 <li key={h}><a href={h} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: C.textDim }}>{t} ↗</a></li>
               ))}
