@@ -105,7 +105,7 @@ function Eyebrow({ num, children }) {
 function Aside({ tag, color, children }) {
   const C = useTheme(); color = color || C.cyan;
   return (
-    <div className="my-7 rounded-r-lg pl-5 pr-5 py-4"
+    <div className="my-7 rounded-r-lg pl-5 pr-5 py-4 max-w-[64ch]"
          style={{ borderLeft: `2px solid ${color}`, background: `linear-gradient(90deg, ${color}11, transparent)` }}>
       {tag && (
         <div className="font-mono text-[11px] tracking-[0.12em] uppercase mb-2" style={{ color }}>
@@ -1589,7 +1589,7 @@ function MathAppendix() {
         <span className="font-mono text-lg shrink-0" style={{ color: C.cyan }}>{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <div className="px-5 pb-6 pt-1 max-w-[68ch]" style={{ borderTop: `1px solid ${C.line}` }}>
+        <div className="px-5 pb-6 pt-1 max-w-[64ch]" style={{ borderTop: `1px solid ${C.line}` }}>
           <H3>1 · From a distribution over futures to a single energy</H3>
           <P>A context <em>x</em> rarely determines its target <em>y</em>. The latent-variable EBM handles this by introducing
           <code style={{ color: C.violet, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>z</code> — the part of <em>y</em> that
@@ -1671,7 +1671,7 @@ function Heading({ num, eyebrow, title, intro }) {
           style={{ color: C.textHi, fontFamily: "Space Grotesk, sans-serif", maxWidth: "20ch" }}>
         {title}
       </h2>
-      {intro && <p className="text-[19px] leading-relaxed mb-2" style={{ color: C.textDim, maxWidth: "62ch" }}>{intro}</p>}
+      {intro && <p className="text-[19px] leading-relaxed mb-2" style={{ color: C.textDim, maxWidth: "64ch" }}>{intro}</p>}
     </Reveal>
   );
 }
