@@ -24,9 +24,10 @@ coding) — in an Andrej Karpathy "build-from-scratch / no black boxes" voice.
 
 ```bash
 npm install
-npm run dev       # dev server → http://localhost:5173
+npm run dev       # dev server → http://localhost:5173   (or ./launch.sh)
 npm run build     # production build → dist/  (the real "does it compile" check)
 npm run preview   # preview the production build
+npm test          # Vitest unit tests (quiz scoring + CEM planner in logic.js)
 ```
 
 **Before considering any change done, run `npm run build`.** It catches JSX errors, and Tailwind
@@ -36,26 +37,37 @@ JIT silently drops a class if a source path is misconfigured.
 
 ```
 index.html              # Vite entry
+launch.sh               # one-command dev launcher (npm install if needed + npm run dev)
 src/
   main.jsx              # React root → renders <JepaCourse /> in <React.StrictMode>
   index.css             # Tailwind directives + minimal reset (dark fallback bg)
-  JepaCourse.jsx        # THE ENTIRE COURSE — one self-contained ~2,300-line component
+  theme.js              # DARK/LIGHT palettes + ThemeContext + useTheme()
+  data.js               # module-scope course data (SECTIONS, SECTION_CHECK, TIMELINE, MODELS, …)
+  logic.js              # pure helpers + testable logic (clamp/lerp, scoreQuiz, planCEM, l1Energy)
+  logic.test.js         # Vitest unit tests for logic.js
+  JepaCourse.jsx        # all React components + the course body (~2,300 lines)
 tailwind.config.js      # scans index.html + src/**
 PROJECT_BRIEF.md        # full handoff doc (READ THIS)
 ```
 
-**Everything lives in `src/JepaCourse.jsx`.** Read it in layers:
-- **Theming (top):** `DARK`/`LIGHT` palette objects, `ThemeContext` + `useTheme()` hook.
-- **Reusable primitives:** `Reveal`, `Eyebrow`, `Instructor`, `CodeBlock`, `GuessGate`, `Section`,
-  `Heading`, `P`, `H3`, `Hi`, `B`, `Toggle`, etc.
-- **Interactive labs (13):** `PixelVsLatentLab`, `MaskingLab`, `ArchitectureDiagram`, `CollapseLab`,
-  `ContrastiveVsRegularized`, `MaskingStrategyViz`, `ApproachCompare`, `DiscoveryTimeline`,
-  `ModelExplorer`, `TwoStageTraining`, `LatentPlanningLab`, `WorldModelLandscape`, `Glossary`,
-  `Checkpoint`, `HeroCanvas`.
-- **Module-scope data:** `SECTIONS`, `TIMELINE`, `MODELS`, `WORLD_MODELS`, `GLOSSARY`.
-- **Layout:** `useScrollProgress`, nav + theme toggle, hero, 10 `<Section>`s, footer (primary sources).
-- **Default export:** `JepaCourse()` — holds `dark` state, wraps everything in `ThemeContext.Provider`;
-  the real UI is in `CourseBody`.
+**The components and course body live in `src/JepaCourse.jsx`** (theme/data/pure-logic are split
+into the modules above). Read `JepaCourse.jsx` in layers:
+- **Reusable primitives:** `Reveal`, `Eyebrow`, `Instructor`, `CodeBlock` (has a copy button),
+  `GuessGate` (predict-first + a `tag="Recall"` spaced-retrieval variant), `Section`, `Heading`,
+  `P`, `H3`, `Hi`, `B`, `Toggle`, etc.
+- **Interactive labs / diagrams:** `PixelVsLatentLab`, `MaskingLab`, `ArchitectureDiagram`,
+  `CollapseLab`, `ContrastiveVsRegularized`, `MaskingStrategyViz`, `ApproachCompare`,
+  `DiscoveryTimeline`, `ModelExplorer`, `TwoStageTraining`, `LatentPlanningLab`,
+  `WorldModelLandscape`, `HJepaDiagram`, `MathAppendix` (collapsible), `Glossary`, `Checkpoint`,
+  `HeroCanvas`.
+- **Layout:** `useScrollProgress`, nav (theme toggle + mobile menu + per-section completion ✓),
+  hero, 10 `<Section>`s, footer (primary sources).
+- **Default export:** `JepaCourse()` — holds `dark` state (initialized from `prefers-color-scheme`),
+  wraps everything in `ThemeContext.Provider`; the real UI is in `CourseBody`.
+
+Section completion checkmarks are driven by `SECTION_CHECK` (in `data.js`), which maps a section id
+to the `done`-map key its self-test sets. Pure logic that has tests (`scoreQuiz`, `planCEM`) lives in
+`logic.js` so the components import the exact code the tests cover.
 
 ### Sections (the `SECTIONS` array, in order)
 `idea` → `why` → `build` → `collapse` → `depth` (Under the Hood, shown as eyebrow "04½") →
