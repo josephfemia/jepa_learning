@@ -1,0 +1,12 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- "Predict the representation": a known context embedding (filled) predicts a
+       target embedding (outline) across latent space. Cyan = latent, violet = prediction. -->
+  <rect width="32" height="32" rx="7" fill="#0b1020"/>
+  <!-- context embedding (what the model sees) -->
+  <circle cx="9.5" cy="16" r="4" fill="#3ee0d4"/>
+  <!-- prediction arrow in latent space -->
+  <line x1="14" y1="16" x2="19.5" y2="16" stroke="#a394ff" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M19 13.4 L22.4 16 L19 18.6 Z" fill="#a394ff"/>
+  <!-- predicted target embedding (not drawn in pixels — just its representation) -->
+  <circle cx="24" cy="16" r="4" fill="none" stroke="#3ee0d4" stroke-width="2"/>
+</svg>

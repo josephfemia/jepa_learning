@@ -12,6 +12,10 @@ dist-ssr/
 *.log
 npm-debug.log*
 
+# Playwright MCP artifacts (snapshots, console logs, scan screenshots)
+.playwright-mcp/
+hero-*.png
+
 # Editor / OS
 .DS_Store
 .idea/

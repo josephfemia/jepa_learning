@@ -73,6 +73,20 @@ function MoonIcon() {
     </svg>
   );
 }
+function MenuIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M3 6h18M3 12h18M3 18h18" />
+    </svg>
+  );
+}
+function CloseIcon() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <path d="M6 6l12 12M18 6L6 18" />
+    </svg>
+  );
+}
 
 /* Hook: has this element scrolled into view (for reveal animations) */
 function useInView(opts = { threshold: 0.15 }) {
@@ -552,14 +566,19 @@ function ContrastiveVsRegularized() {
               } else {
                 e = Math.max(0.1, 1 - valley * 0.9);
               }
-              pts.push([x, 30 + e * 130]);
+              // y grows downward in SVG, so low energy must map to a LARGER y
+              // (a valley at the bottom) and high energy to the top (a peak).
+              pts.push([x, 160 - e * 130]);
             }
             const d = "M " + pts.map((p) => `${p[0]},${p[1]}`).join(" L ");
+            // sit the data marker on the valley floor (energy at u = 0.38)
+            const dataE = isReg ? 0.15 : 0.1;
+            const dataY = 160 - dataE * 130;
             return (
               <>
                 <path d={d} fill="none" stroke={col} strokeWidth="2.5" />
-                <circle cx={0.38 * 600} cy={160} r="6" fill={C.green} />
-                <text x={0.38 * 600} y={184} fill={C.green} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">data (low E)</text>
+                <circle cx={0.38 * 600} cy={dataY} r="6" fill={C.green} />
+                <text x={0.38 * 600} y={dataY + 22} fill={C.green} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">data (low E)</text>
                 {!isReg ? (
                   <>
                     <circle cx={0.72 * 600} cy={48} r="6" fill={C.amber} />
@@ -1711,8 +1730,12 @@ function CourseBody({ dark, setDark }) {
   const { p, active } = useScrollProgress();
   const [done, setDone] = useState({});
   const mark = useCallback((k) => setDone((d) => (d[k] ? d : { ...d, [k]: true })), []);
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const go = (id) => document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+  const go = (id) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    setMenuOpen(false);
+  };
 
   // nav background respects theme (was hardcoded dark rgba before)
   const navBg = dark ? "rgba(10,14,26,.82)" : "rgba(247,248,251,.85)";
@@ -1757,6 +1780,30 @@ function CourseBody({ dark, setDark }) {
                   {s.label}
                 </button>
               ))}
+            </div>
+            {/* mobile / tablet sections menu (below the lg breakpoint where the
+                inline nav is hidden, so sections stay reachable on small screens) */}
+            <div className="lg:hidden relative">
+              <button onClick={() => setMenuOpen((o) => !o)} aria-label="Sections menu"
+                aria-expanded={menuOpen}
+                className="w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0"
+                style={{ border: `1px solid ${C.line}`, background: C.ink3, color: C.cyan }}>
+                {menuOpen ? <CloseIcon /> : <MenuIcon />}
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 py-1.5 rounded-xl border shadow-xl max-h-[70vh] overflow-y-auto"
+                  style={{ background: C.ink2, borderColor: C.line, minWidth: 196 }}>
+                  {SECTIONS.map((s, i) => (
+                    <button key={s.id} onClick={() => go(s.id)}
+                      className="w-full text-left font-mono text-[12px] tracking-wide uppercase px-4 py-2 transition-all flex items-center gap-2"
+                      style={{ color: active === s.id ? C.textHi : C.textDim,
+                               background: active === s.id ? C.ink3 : "transparent" }}>
+                      <span style={{ color: C.textFaint }}>{String(i + 1).padStart(2, "0")}</span>
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
             <button onClick={() => setDark((v) => !v)} aria-label="Toggle light or dark mode"
               className="ml-1 w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0"
