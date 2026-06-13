@@ -1,0 +1,19 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* The course component sets its own background, fonts, and colors via inline
+   styles and a scoped <style> block (including the Google Fonts @import), so we
+   only need a minimal reset here. */
+html,
+body,
+#root {
+  margin: 0;
+  padding: 0;
+  min-height: 100%;
+}
+
+body {
+  /* Fallback bg matches the component's dark theme so there's no flash on load */
+  background: #0b1020;
+}
