@@ -9,7 +9,8 @@ data/
 __pycache__/
 *.pyc
 
-# Dev scratch (the notebooks + README are the deliverable)
-_dev_*.py
-_build_notebooks.py
+# Dev scratch + notebook-generated scripts (the notebooks + README are the deliverable)
+_*.py
 *.log
+ddp_ijepa.py
+fsdp_mem.py
