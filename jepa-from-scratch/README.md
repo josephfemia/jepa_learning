@@ -7,7 +7,7 @@ top-to-bottom in a notebook:
 | Notebook | Topic | What it shows |
 |----------|-------|---------------|
 | [`01_i-jepa_images_cifar10.ipynb`](01_i-jepa_images_cifar10.ipynb) | **I-JEPA** (images) | latent prediction learns semantic features — linear probe **~57%** vs raw-pixel **~40%** |
-| [`02_v-jepa_video_panning_cifar.ipynb`](02_v-jepa_video_panning_cifar.ipynb) | **V-JEPA** (video, 3D tubelets) | the same idea in space+time — class probe **~48%** vs raw pixels **~40%** |
+| [`02_v-jepa_video_panning_cifar.ipynb`](02_v-jepa_video_panning_cifar.ipynb) | **V-JEPA** (video, 3D tubelets) | the same idea in space+time — class probe **~48%** vs raw pixels **~36%** |
 | [`03_distributed_training_ddp_fsdp.ipynb`](03_distributed_training_ddp_fsdp.ipynb) | **Multi-GPU: DDP & FSDP** | the same I-JEPA across 2 real GPUs — data-parallel scaling, the **straggler effect**, and FSDP memory sharding |
 | [`04_efficient_video_data_pipelines.ipynb`](04_efficient_video_data_pipelines.ipynb) | **Video / streaming data pipelines** | why the input pipeline becomes the bottleneck at scale — workers, pinned memory, streaming + sharding, GPU starvation |
 
@@ -37,7 +37,7 @@ uv pip install --python .venv torch torchvision numpy matplotlib jupyter ipykern
 #   (the default torch wheel is CUDA-enabled on Linux x86_64; use --index-url
 #    https://download.pytorch.org/whl/cpu for a CPU-only build)
 
-# 2. launch Jupyter and open either notebook
+# 2. launch Jupyter and open any notebook
 .venv/bin/jupyter lab        # or: jupyter notebook
 ```
 
@@ -47,12 +47,11 @@ Or run a notebook headless end-to-end:
 .venv/bin/jupyter nbconvert --to notebook --execute --inplace 01_i-jepa_images_cifar10.ipynb
 ```
 
-Datasets (CIFAR-10, MNIST) download automatically to `./data/` on first run — both are
-small, public, and standard.
+CIFAR-10 downloads automatically to `./data/` on first run — small, public, and standard.
 
 ---
 
-## The architecture (shared by both notebooks)
+## The architecture (shared by notebooks 1–2)
 
 A JEPA has **three networks** and one deliberate **asymmetry**:
 
@@ -104,7 +103,7 @@ ema_update(target_encoder, context_encoder)         # teacher trails the student
 - **Masking:** I-JEPA's multi-block scheme — 4 target blocks (15–20% each, aspect 0.75–1.5) on
   the patch grid; context is the complement (a small, readable simplification of the paper's
   "one big context block minus overlap").
-- **Result:** a linear probe on the frozen encoder reaches **~58%** on CIFAR-10 vs **~40%** for a
+- **Result:** a linear probe on the frozen encoder reaches **~57%** on CIFAR-10 vs **~40%** for a
   linear probe on raw pixels (random = 10%). Pretraining never saw a label — the encoder
   organized semantics on its own.
 
@@ -117,7 +116,7 @@ ema_update(target_encoder, context_encoder)         # teacher trails the student
   MNIST digit? A clean synthetic digit is *linearly trivial* — even a random network reads it off, so
   self-supervised learning has nothing to add (a real and instructive gotcha when evaluating SSL).
   Natural-image content is where the signal is measurable.
-- **Result:** a linear probe on the frozen encoder reaches **~48%** object-class accuracy vs **~40%**
+- **Result:** a linear probe on the frozen encoder reaches **~48%** object-class accuracy vs **~36%**
   for a raw-clip-pixel probe (random = 10%) — the video version of I-JEPA's win, learned from
   unlabeled clips.
 

@@ -100,7 +100,7 @@ const PYC = { com: "#8a8578", str: "#b6c98f", kw: "#c8a6f2", konst: "#e0a766", s
   builtin: "#7fb8ff", fn: "#6fc7b6", num: "#e0b072", dec: "#e0a766", def: "#e8e6e1" };
 const escHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
-function pyHighlight(code) {
+export function pyHighlight(code) {
   let out = "", i = 0; const n = code.length;
   const push = (s, c) => { out += c ? `<span style="color:${c}">${escHtml(s)}</span>` : escHtml(s); };
   while (i < n) {
