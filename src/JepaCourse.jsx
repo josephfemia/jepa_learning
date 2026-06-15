@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { DARK, LIGHT, ThemeContext, useTheme } from "./theme.js";
 import { SECTIONS, SECTION_CHECK, TIMELINE, MODELS, GLOSSARY, WORLD_MODELS } from "./data.js";
 import { cx, clamp, lerp, scoreQuiz, planCEM } from "./logic.js";
-import NotebooksPage from "./Notebooks.jsx";
+import NotebooksPage, { pyHighlight } from "./Notebooks.jsx";
 
 /* ============================================================================
    JEPA — An Interactive Course
@@ -106,7 +106,7 @@ function Eyebrow({ num, children }) {
 function Aside({ tag, color, children }) {
   const C = useTheme(); color = color || C.cyan;
   return (
-    <div className="my-7 rounded-r-lg pl-5 pr-5 py-4 max-w-[64ch]"
+    <div className="my-7 rounded-r-lg pl-5 pr-5 py-4"
          style={{ borderLeft: `2px solid ${color}`, background: `linear-gradient(90deg, ${color}11, transparent)` }}>
       {tag && (
         <div className="font-mono text-[11px] tracking-[0.12em] uppercase mb-2" style={{ color }}>
@@ -135,7 +135,7 @@ function Instructor({ children, label = "let's think about it" }) {
   const C = useTheme();
   return (
     <div className="my-7 rounded-2xl p-5 sm:p-6 relative overflow-hidden"
-         style={{ background: C.isDark ? "#0d1320" : "#f0f3f9", border: `1px solid ${C.line}` }}>
+         style={{ background: C.ink3, border: `1px solid ${C.line}` }}>
       <div className="flex items-center gap-2.5 mb-3">
         <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-[13px] font-bold"
              style={{ background: C.cyan, color: C.ink }}>↳</div>
@@ -158,19 +158,14 @@ function CodeBlock({ title, lines }) {
     if (navigator.clipboard?.writeText) navigator.clipboard.writeText(text).then(done).catch(done);
     else done();
   };
-  const tint = (ln) => {
-    // comments
-    if (ln.trimStart().startsWith("#")) return { color: C.textFaint };
-    return { color: C.text };
-  };
   return (
     <div className="my-6 rounded-xl overflow-hidden border" style={{ borderColor: C.line, background: C.codeBg }}>
       {title && (
         <div className="px-4 py-2 flex items-center gap-2 border-b" style={{ borderColor: C.codeBar, background: C.codeBar }}>
           <span className="flex gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#f0a84a" }} />
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#38e1d6" }} />
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#9d8cff" }} />
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#57534a" }} />
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#57534a" }} />
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: "#57534a" }} />
           </span>
           <span className="font-mono text-[12px] ml-1" style={{ color: C.textDim }}>{title}</span>
           <button onClick={copy} aria-label="Copy code to clipboard"
@@ -183,27 +178,13 @@ function CodeBlock({ title, lines }) {
       <pre className="px-4 py-4 overflow-x-auto font-mono text-[13px] leading-[1.85]" style={{ margin: 0 }}>
         {lines.map((ln, i) => (
           <div key={i} className="flex">
-            <span className="select-none pr-4 text-right" style={{ color: "#2f3a52", minWidth: 28 }}>{i + 1}</span>
-            <code style={tint(ln)} dangerouslySetInnerHTML={{ __html: highlightPy(ln) }} />
+            <span className="select-none pr-4 text-right" style={{ color: "#5b564c", minWidth: 28 }}>{i + 1}</span>
+            <code dangerouslySetInnerHTML={{ __html: pyHighlight(ln) }} />
           </div>
         ))}
       </pre>
     </div>
   );
-}
-/* minimal python-ish highlighter (keywords, strings, numbers, calls in cyan) */
-function highlightPy(ln) {
-  if (ln.trimStart().startsWith("#"))
-    return `<span style="color:#5d6781">${escapeHtml(ln)}</span>`;
-  let s = escapeHtml(ln);
-  s = s.replace(/\b(def|return|for|in|with|import|from|as|None|and|not)\b/g, '<span style="color:#9d8cff">$1</span>');
-  s = s.replace(/(#.*$)/g, '<span style="color:#5d6781">$1</span>');
-  s = s.replace(/\b(\d+\.?\d*)\b/g, '<span style="color:#f0a84a">$1</span>');
-  s = s.replace(/\b([a-zA-Z_]\w*)(\()/g, '<span style="color:#38e1d6">$1</span>$2');
-  return s;
-}
-function escapeHtml(s) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /* The V-JEPA 2 planning loop, shown as readable code inside an Instructor aside */
@@ -796,7 +777,7 @@ function Toggle({ label, sub, on, onChange, color }) {
       className="w-full flex items-center gap-3 rounded-xl px-4 py-3 mb-2 text-left transition-all"
       style={{ background: on ? `${color}18` : C.ink3, border: `1px solid ${on ? color : C.line}` }}>
       <div className="w-10 h-6 rounded-full p-0.5 shrink-0 transition-all"
-           style={{ background: on ? color : "#2a3550" }}>
+           style={{ background: on ? color : C.line }}>
         <div className="w-5 h-5 rounded-full bg-white transition-all"
              style={{ transform: on ? "translateX(16px)" : "none" }} />
       </div>
@@ -908,17 +889,17 @@ function DiscoveryTimeline() {
         JEPA wasn't invented in one leap. Each step below solved the problem the previous one exposed.
         Click through and watch the idea become <em style={{color:C.cyan, fontStyle:"normal"}}>inevitable</em>.
       </p>
-      <div className="relative pl-8">
-        <div className="absolute left-[11px] top-2 bottom-2 w-0.5"
-             style={{ background: `linear-gradient(${C.violet}, ${C.cyan}, ${C.amber})` }} />
+      <div className="relative">
         {TIMELINE.map((it, i) => {
           const active = open === i;
           const ic = C[it.c] || C.cyan;
+          const last = i === TIMELINE.length - 1;
           return (
-            <div key={i} className="relative mb-3">
-              <div className="absolute left-[-29px] top-1.5 w-3.5 h-3.5 rounded-full transition-all"
-                   style={{ background: active ? ic : C.ink, border: `2px solid ${ic}`,
-                            boxShadow: `0 0 0 4px ${C.ink}` }} />
+            <div key={i} className="relative pl-8 pb-3 last:pb-0">
+              {/* connector: from this dot's center straight down to the next dot */}
+              {!last && <div className="absolute left-[6px] top-[10px] bottom-0 w-px" style={{ background: C.line }} />}
+              <div className="absolute left-0 top-[5px] w-3.5 h-3.5 rounded-full transition-all"
+                   style={{ background: active ? ic : C.ink, border: `2px solid ${ic}` }} />
               <button onClick={() => setOpen(active ? -1 : i)}
                 className="w-full text-left rounded-xl px-4 py-3 transition-all"
                 style={{ background: active ? C.ink2 : "transparent",
@@ -977,7 +958,7 @@ function ModelExplorer() {
         <div className="p-6">
           <p className="text-[16px] mb-4" style={{ color: C.text }}>{m.blurb}</p>
           <Aside tag="Why it matters" color={C.cyan}>{m.why}</Aside>
-          <div className="flex gap-5 flex-wrap pt-4 mt-2" style={{ borderTop: `1px solid #1b2436` }}>
+          <div className="flex gap-5 flex-wrap pt-4 mt-2" style={{ borderTop: `1px solid ${C.line}` }}>
             {m.stats.map(([v, l], i) => (
               <div key={i} className="min-w-[110px]">
                 <div className="font-bold text-2xl leading-none" style={{ color: C.cyan, fontFamily: "Fraunces, Georgia, serif" }}>{v}</div>
@@ -1335,15 +1316,15 @@ function LatentPlanningLab() {
       ctx.beginPath();
       const [sx, sy] = P(stateRef.current); ctx.moveTo(sx, sy);
       c.seq.forEach((pt) => { const [x, y] = P(pt); ctx.lineTo(x, y); });
-      ctx.strokeStyle = `rgba(157,140,255,${C.isDark ? 0.12 : 0.16})`;
+      ctx.strokeStyle = `${C.violet}${C.isDark ? "1f" : "29"}`;
       ctx.lineWidth = DPR; ctx.stroke();
     });
-    // elite rollouts (bright cyan)
+    // elite rollouts (accent blue)
     elites.forEach((c) => {
       ctx.beginPath();
       const [sx, sy] = P(stateRef.current); ctx.moveTo(sx, sy);
       c.seq.forEach((pt) => { const [x, y] = P(pt); ctx.lineTo(x, y); });
-      ctx.strokeStyle = `rgba(56,225,214,${C.isDark ? 0.5 : 0.6})`;
+      ctx.strokeStyle = `${C.cyan}${C.isDark ? "cc" : "e6"}`;
       ctx.lineWidth = 1.6 * DPR; ctx.stroke();
     });
     // goal (amber ring + crosshair) — "goal image embedding"
@@ -1412,7 +1393,7 @@ function LatentPlanningLab() {
         <div className="flex flex-col lg:flex-row gap-5">
           <canvas ref={canvasRef} onClick={placeGoal}
             role="img"
-            aria-label="Interactive 2D latent space. An amber ring marks the goal embedding; a glowing cyan dot is the robot's current state; faint purple lines are sampled action rollouts and bright cyan lines are the elite plans kept by the Cross-Entropy Method. Tap to move the goal, then press Plan & act."
+            aria-label="Interactive 2D latent space. An amber ring marks the goal embedding; a glowing blue dot is the robot's current state; faint violet lines are sampled action rollouts and bright blue lines are the elite plans kept by the Cross-Entropy Method. Tap to move the goal, then press Plan & act."
             className="rounded-xl w-full lg:w-[360px] h-[300px] shrink-0"
             style={{ background: C.ink, border: `1px solid ${C.line}`, cursor: running ? "default" : "crosshair" }} />
 
@@ -1512,10 +1493,11 @@ function HeroCanvas() {
 function HJepaDiagram() {
   const C = useTheme();
   const sub = C.textFaint;
-  const bottom = [["s_t", 140], ["s_t+1", 300], ["s_t+2", 460], ["s_t+3", 600]];
+  const mono = "ui-monospace, Menlo, monospace";
+  const bottom = [["s_t", 150], ["s_t+1", 320], ["s_t+2", 490], ["s_t+3", 640]];
   return (
     <figure className="my-8 rounded-2xl border overflow-hidden" style={{ borderColor: C.line, background: C.ink2 }}>
-      <svg viewBox="0 0 720 300" className="w-full h-auto" role="img"
+      <svg viewBox="0 0 760 360" className="w-full h-auto" role="img"
            aria-label="Hierarchical JEPA: a fast, detailed level predicts the next embedding over short horizons; a slower, more abstract level predicts over long horizons and hands subgoals down to the level below.">
         <defs>
           <marker id="hV" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.violet} /></marker>
@@ -1523,32 +1505,32 @@ function HJepaDiagram() {
           <marker id="hN" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill={C.textFaint} /></marker>
         </defs>
 
-        {/* abstract (top) level */}
-        <text x="34" y="58" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace">level 2 · abstract state · long horizon</text>
-        <circle cx="220" cy="96" r="20" fill={C.ink3} stroke={C.violet} />
-        <text x="220" y="100" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">a_t</text>
-        <line x1="242" y1="96" x2="478" y2="96" stroke={C.violet} strokeWidth="2" markerEnd="url(#hV)" />
-        <text x="360" y="88" fill={sub} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">predict (coarse, few steps)</text>
-        <circle cx="500" cy="96" r="20" fill={C.ink3} stroke={C.violet} />
-        <text x="500" y="100" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">a_t+1</text>
+        {/* abstract (top) level — caption sits clear above its node row */}
+        <text x="34" y="42" fill={C.violet} fontSize="12" fontFamily={mono}>level 2 · abstract state · long horizon</text>
+        <circle cx="250" cy="120" r="24" fill={C.ink3} stroke={C.violet} />
+        <text x="250" y="125" fill={C.violet} fontSize="12" fontFamily={mono} textAnchor="middle">a_t</text>
+        <line x1="276" y1="120" x2="514" y2="120" stroke={C.violet} strokeWidth="2" markerEnd="url(#hV)" />
+        <text x="395" y="108" fill={sub} fontSize="10" fontFamily={mono} textAnchor="middle">predict (coarse, few steps)</text>
+        <circle cx="540" cy="120" r="24" fill={C.ink3} stroke={C.violet} />
+        <text x="540" y="125" fill={C.violet} fontSize="12" fontFamily={mono} textAnchor="middle">a_t+1</text>
 
         {/* abstraction up + subgoal down */}
-        <line x1="150" y1="212" x2="206" y2="116" stroke={C.textFaint} strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#hN)" />
-        <text x="120" y="165" fill={sub} fontSize="9" fontFamily="ui-monospace, Menlo, monospace">abstract ↑</text>
-        <line x1="508" y1="116" x2="566" y2="212" stroke={C.violet} strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#hV)" />
-        <text x="556" y="165" fill={C.violet} fontSize="9" fontFamily="ui-monospace, Menlo, monospace">subgoal ↓</text>
+        <line x1="170" y1="232" x2="232" y2="142" stroke={C.textFaint} strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#hN)" />
+        <text x="92" y="195" fill={sub} fontSize="10" fontFamily={mono}>abstract ↑</text>
+        <line x1="548" y1="146" x2="628" y2="230" stroke={C.violet} strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#hV)" />
+        <text x="592" y="195" fill={C.violet} fontSize="10" fontFamily={mono}>subgoal ↓</text>
 
-        {/* detailed (bottom) level */}
-        <text x="34" y="248" fill={C.cyan} fontSize="11" fontFamily="ui-monospace, Menlo, monospace">level 1 · detailed state · short horizon</text>
+        {/* detailed (bottom) level — caption sits clear below its node row */}
         {bottom.map(([lab, x], i) => (
           <g key={lab}>
-            <circle cx={x} cy={228} r="15" fill={C.ink3} stroke={C.cyan} />
-            <text x={x} y={232} fill={C.cyan} fontSize="10" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">{lab}</text>
+            <circle cx={x} cy={252} r="19" fill={C.ink3} stroke={C.cyan} />
+            <text x={x} y={257} fill={C.cyan} fontSize="11" fontFamily={mono} textAnchor="middle">{lab}</text>
             {i < bottom.length - 1 && (
-              <line x1={x + 15} y1={228} x2={bottom[i + 1][1] - 15} y2={228} stroke={C.cyan} strokeWidth="1.8" markerEnd="url(#hC)" />
+              <line x1={x + 19} y1={252} x2={bottom[i + 1][1] - 19} y2={252} stroke={C.cyan} strokeWidth="1.8" markerEnd="url(#hC)" />
             )}
           </g>
         ))}
+        <text x="34" y="322" fill={C.cyan} fontSize="12" fontFamily={mono}>level 1 · detailed state · short horizon</text>
       </svg>
       <figcaption className="px-5 py-3 text-[13px] border-t" style={{ borderColor: C.line, color: C.textDim }}>
         <B>H-JEPA.</B> Stack the same predict-the-representation idea at two timescales. The <span style={{ color: C.cyan }}>detailed level</span>
@@ -1576,7 +1558,7 @@ function MathAppendix() {
         <span className="font-mono text-lg shrink-0" style={{ color: C.cyan }}>{open ? "−" : "+"}</span>
       </button>
       {open && (
-        <div className="px-5 pb-6 pt-1 max-w-[64ch]" style={{ borderTop: `1px solid ${C.line}` }}>
+        <div className="px-5 pb-6 pt-1" style={{ borderTop: `1px solid ${C.line}` }}>
           <H3>1 · From a distribution over futures to a single energy</H3>
           <P>A context <em>x</em> rarely determines its target <em>y</em>. The latent-variable EBM handles this by introducing
           <code style={{ color: C.violet, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>z</code> — the part of <em>y</em> that
@@ -1658,7 +1640,7 @@ function Heading({ num, eyebrow, title, intro }) {
           style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif", maxWidth: "20ch" }}>
         {title}
       </h2>
-      {intro && <p className="text-[19px] leading-relaxed mb-2" style={{ color: C.textDim, maxWidth: "64ch" }}>{intro}</p>}
+      {intro && <p className="text-[19px] leading-relaxed mb-2" style={{ color: C.textDim }}>{intro}</p>}
     </Reveal>
   );
 }
@@ -1727,7 +1709,7 @@ function CourseBody({ dark, setDark }) {
         :root{
           --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
           --font-sans:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
-          --font-mono:ui-monospace, 'SF Mono', 'ui-monospace, Menlo, monospace', Menlo, Consolas, monospace;
+          --font-mono:ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
         }
         *{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
         body{font-family:var(--font-sans)}
@@ -1865,7 +1847,7 @@ function CourseBody({ dark, setDark }) {
             </Aside>
           </Reveal>
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <P>Picture a short video of a ball rolling toward the edge of a table. A <B>generative</B> model — the family behind most headline AI — learns by reconstructing the exact missing pixels: every shadow, every reflection, the grain of the wood. To do that it must commit to one precise future, down to detail it can't possibly know.</P>
               <P>A JEPA asks a different question. Not <em>"what will the next frame look like, pixel for pixel?"</em> but <em>"what will it <Hi>mean</Hi>?"</em> It encodes the visible part, encodes the hidden part, and trains a small <B>predictor</B> to jump from one to the other — entirely inside an abstract space. The ball will be roughly <Hi>there</Hi>, moving <Hi>that way</Hi>, about to fall. The wood grain is discarded as noise.</P>
             </div>
@@ -1911,7 +1893,7 @@ function CourseBody({ dark, setDark }) {
           <Heading num="02" eyebrow="Why it matters"
             title={<>The world isn't fully predictable — so stop trying to predict all of it</>} />
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <P>LeCun's critique of generative pretraining is precise. Forcing a model to reconstruct raw inputs charges it a tax on every pixel, with two costs: <B>wasted capacity on the unpredictable</B> (it's punished for failing to guess things that can't be guessed) and <B>obsession with low-level features</B> (it memorizes texture and lighting instead of semantic structure).</P>
               <P>Predicting in representation space defuses both. The target is itself a <Hi>learned</Hi> embedding, so the encoder can make it abstract and smooth — encode "a ball, here, falling" and drop the rest. See it for yourself:</P>
             </div>
@@ -1920,7 +1902,7 @@ function CourseBody({ dark, setDark }) {
           <PixelVsLatentLab />
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>The energy-based framing</H3>
               <P>Formally, a JEPA is an <B>Energy-Based Model</B>. It defines a scalar energy — the prediction error in embedding space — that should be <Hi>low</Hi> for compatible pairs and high for incompatible ones. EBMs sidestep the normalization that makes probabilistic generative models choke in high dimensions: you never integrate over all possible images.</P>
             </div>
@@ -1951,7 +1933,7 @@ function CourseBody({ dark, setDark }) {
                 "    loss = mean((sy_hat - sy) ** 2)  # error lives in embedding space",
                 "    return loss + lam * regularizer(sx, sy)  # + anti-collapse term",
               ]} />
-            <div className="max-w-[64ch]">
+            <div>
               <P>Look at what's <em>not</em> there. There's no decoder. There's no pixel anywhere in the loss. Line 7 is the only "prediction" and it outputs a vector of numbers, not an image. Line 8 compares two vectors. If you delete line 9 — the regularizer — the cheapest way to make line 8 zero is to make <Hi>every</Hi> embedding identical, and the whole thing quietly dies. That single line is why the next section exists.</P>
             </div>
           </Reveal>
@@ -1965,7 +1947,7 @@ function CourseBody({ dark, setDark }) {
           <Reveal><ArchitectureDiagram /></Reveal>
           <MaskingLab />
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>1 · Context encoder (the student)</H3>
               <P>The network you keep. It maps the visible input to a representation <Hi>sx</Hi> and learns by backpropagation. In every published JEPA it's a Vision Transformer. After training, this is your feature extractor.</P>
               <H3>2 · Target encoder (the teacher)</H3>
@@ -1985,7 +1967,7 @@ function CourseBody({ dark, setDark }) {
             title={<>If you grade yourself on predicting your own targets, cheating is easy</>}
             intro="This failure mode defines JEPA research. Understand it and every design choice in the family suddenly makes sense." />
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <P>The danger is built in. If the model is scored on predicting its own learned embeddings, there's a shortcut: <B>make all embeddings identical</B>. Error drops to zero; the representation learns nothing. This is <Hi>representation collapse</Hi>, and it comes in two flavors — <B>complete</B> (everything maps to one point) and <B>dimensional</B> (embeddings squeeze into a tiny subspace).</P>
             </div>
           </Reveal>
@@ -2013,7 +1995,7 @@ function CourseBody({ dark, setDark }) {
           />
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <P>So JEPA's history is largely a history of <B>anti-collapse techniques</B>: architectural asymmetry (EMA + stop-gradient), contrastive negatives (effective but expensive), and variance–covariance regularization. <B>VICReg</B> (Bardes, Ponce &amp; LeCun, 2022) is the canonical example — it has three terms: <Hi>variance</Hi> (a hinge loss keeping each dimension's spread above a threshold — kills complete collapse), <Hi>covariance</Hi> (drives off-diagonal correlations to zero — kills dimensional collapse), and <Hi>invariance</Hi> (pulls the two views together). Modern models mix these, and in 2025 LeJEPA replaced the whole toolkit with one provably-optimal regularizer.</P>
             </div>
           </Reveal>
@@ -2026,7 +2008,7 @@ function CourseBody({ dark, setDark }) {
             intro="You have the intuition. Now the rigor — the energy formulation, the two ways to train it, the real loss functions, the masking algorithm, and how any of this gets evaluated. This is the section that separates 'I get the idea' from 'I could implement it.'" />
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>JEPA as an energy-based model, precisely</H3>
               <P>Strip away the diagrams and a JEPA is an <B>energy-based model</B> (EBM). An EBM doesn't output a probability — it outputs a scalar <Hi>energy</Hi> <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>E(x, y)</code> that should be low when <em>x</em> and <em>y</em> are compatible and high when they aren't. The appeal: you never have to normalize over all possible <em>y</em> (the partition function that makes high-dimensional generative models intractable). You only have to <Hi>shape the landscape</Hi> so the right answers sit in the valleys.</P>
               <P>For a JEPA the energy is the prediction error <em>between learned representations</em>, with a latent variable <code style={{color:C.violet,background:C.ink3,padding:"1px 5px",borderRadius:4}}>z</code> absorbing the part of <em>y</em> that <em>x</em> can't determine:</P>
@@ -2038,7 +2020,7 @@ function CourseBody({ dark, setDark }) {
               <span style={{ color: C.textFaint }}># minimizing over z = "pick the explanation of y that fits best"</span><br/>
               <span style={{ color: C.textFaint }}># this is what lets ONE context have MANY valid futures</span>
             </div>
-            <div className="max-w-[64ch]">
+            <div>
               <P>The deep problem: an EBM is only useful if low energy is <Hi>rare</Hi> — reserved for compatible pairs. If energy is low <em>everywhere</em>, the model knows nothing. That's collapse, stated in EBM terms. There are exactly two ways to prevent it, and the entire field splits along this line.</P>
             </div>
           </Reveal>
@@ -2046,13 +2028,13 @@ function CourseBody({ dark, setDark }) {
           <Reveal>
             <H3>The two ways to shape an energy landscape</H3>
             <ContrastiveVsRegularized />
-            <div className="max-w-[64ch]">
+            <div>
               <P>LeCun's argument for JEPA leans hard on the second column. Contrastive methods need to push up energy at <em>sampled</em> negative points, and in high dimensions you'd need an exponential number of negatives to cover the space — the curse of dimensionality. Regularized methods sidestep sampling entirely: they constrain the <Hi>statistics</Hi> of the embeddings so the low-energy region simply can't expand to fill space. This is why JEPA's lineage runs through VICReg and SIGReg, not InfoNCE.</P>
             </div>
           </Reveal>
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>VICReg, for real — the three terms in code</H3>
               <P>Earlier you toggled "variance–covariance regularization" as a black box. Here is what those words actually compute. Given a batch of embeddings <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>Z</code> (N samples × D dims), VICReg is three terms with fixed coefficients λ=μ=25, ν=1:</P>
             </div>
@@ -2075,24 +2057,24 @@ function CourseBody({ dark, setDark }) {
                 "",
                 "    return lam*inv + mu*var + nu*cov_loss",
               ]} />
-            <div className="max-w-[64ch]">
+            <div>
               <P>Two things worth internalizing. First, the variance term is a <Hi>hinge</Hi> — <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>relu(γ − std)</code> — not a penalty on the std itself; once a dimension is spread enough, it's left alone. (The paper notes you must hinge the <em>standard deviation</em>, not the variance: near zero, the gradient of √ blows up and rescues the dimension, whereas variance's gradient vanishes and lets it die.) Second, the covariance term is exactly Barlow Twins' redundancy reduction, and there's a beautiful information-theoretic reading: decorrelating dimensions <Hi>maximizes the information</Hi> the embedding carries per dimension. VICReg is, in disguise, an information-maximization objective.</P>
             </div>
           </Reveal>
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>The masking strategy is a design decision, not a detail</H3>
               <P>I-JEPA's results hinge on <em>how</em> you choose context and targets. Predicting single scattered patches just tests local texture interpolation; the model learns nothing semantic. The fix — <B>multi-block masking</B> — is specific and worth knowing by the numbers:</P>
             </div>
             <MaskingStrategyViz />
-            <div className="max-w-[64ch]">
+            <div>
               <P>Two subtleties that trip people up. The targets are masked at the <Hi>output of the target encoder</Hi>, not the input — the teacher sees the whole image, then you select which of its representations to predict. And context–target <Hi>overlap is removed</Hi>, so the predictor can't cheat by copying a region it already sees. These are the choices that make the task semantic rather than trivial.</P>
             </div>
           </Reveal>
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>SIGReg: how LeJEPA replaced the whole toolkit</H3>
               <P>LeJEPA's claim is sharp: the <Hi>isotropic Gaussian</Hi> 𝒩(0, I) is the unique embedding distribution that minimizes worst-case downstream prediction risk. So instead of EMA, stop-gradients, and VICReg's three terms, just push the embeddings toward that one distribution. The trick is doing it cheaply in high dimensions — you can't directly match a 1024-dim density.</P>
               <P><B>SIGReg</B> (Sketched Isotropic Gaussian Regularization) uses a <Hi>sketching</Hi> idea: a distribution is 𝒩(0, I) if and only if <em>every</em> 1-D projection of it is a standard 1-D Gaussian (the Cramér–Wold theorem). So project the batch onto many random directions and run a univariate normality test (Epps–Pulley) on each. This is linear in dimension and batch size, has one hyperparameter (λ), and needs no teacher, no stop-gradient, no negatives.</P>
@@ -2107,7 +2089,7 @@ function CourseBody({ dark, setDark }) {
           </Reveal>
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>How do you even evaluate a representation?</H3>
               <P>A researcher's reflexive question. Since JEPA produces embeddings, not labels or pixels, you measure quality by how useful the <Hi>frozen</Hi> features are downstream. The standard protocols, in increasing permissiveness:</P>
               <ul className="my-4 space-y-2.5">
@@ -2144,7 +2126,7 @@ function CourseBody({ dark, setDark }) {
           />
           <ApproachCompare />
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <P>The contrast LeCun presses hardest is with <B>LLMs</B>: an autoregressive model predicts the next token in data space and, in his view, only manipulates the statistics of human text — no grounded model of reality, weak long-horizon planning, error accumulating token by token. JEPA is his proposed alternative substrate: learn how the world <Hi>behaves</Hi> in abstract space, then plan against it.</P>
             </div>
             <div className="my-10 text-center">
@@ -2209,7 +2191,7 @@ function CourseBody({ dark, setDark }) {
           />
           <DiscoveryTimeline />
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>The six-module brain JEPA was built to power</H3>
               <P>Crucial context for where this is all heading: JEPA was never meant as a standalone vision model. In the 2022 paper it's one component of a proposed autonomous agent with six differentiable modules — <B>configurator</B> (executive control), <B>perception</B> (current state), <B>world model</B> (fill in missing state, predict futures — where JEPA lives), <B>cost</B> (a scalar "discomfort" to minimize), <B>actor</B> (propose action sequences), and <B>short-term memory</B>.</P>
               <P>Planning works by the actor proposing actions, the world model predicting their consequences <Hi>in latent space</Hi>, and gradients of the cost flowing back through the whole differentiable chain. The <B>hierarchical</B> version (H-JEPA) stacks world models at multiple abstraction levels: detailed representations for short-horizon prediction, abstract ones for long-horizon planning. V-JEPA 2's robotics work begins to make this real.</P>
@@ -2249,7 +2231,7 @@ function CourseBody({ dark, setDark }) {
             <LatentPlanningLab />
           </Reveal>
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <P><span style={{color:C.textDim}}>The template has also been ported to tabular data (T-JEPA), graphs, audio, EEG, and multimodal text–image–video (TI-JEPA, VL-JEPA). The recurring lesson: JEPA is powerful but <em>not automatic</em> — success hinges on target construction, masking strategy, and collapse prevention.</span></P>
             </div>
           </Reveal>
@@ -2275,7 +2257,7 @@ function CourseBody({ dark, setDark }) {
           />
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <P>Step back and look at the whole arc. A <B>world model</B> is an internal simulator: encode what you observe into a latent state, predict how that state evolves (optionally given your actions), and then <Hi>plan by searching that prediction</Hi> instead of acting blindly in the real world. This was the centerpiece of LeCun's 2022 manifesto — the most complex of the six modules — and everything in the JEPA family is, in the end, a run at building it.</P>
               <P>The recurring obstacle has a name you now know well: <B>collapse</B>. Training a world model end-to-end from raw pixels is fragile, because the encoder can cheat by mapping every frame to nearly the same embedding — prediction becomes trivial and the representation dies. The recent history of JEPA world models is essentially a set of different answers to "how do we get end-to-end training without collapse?"</P>
             </div>
@@ -2297,7 +2279,7 @@ function CourseBody({ dark, setDark }) {
           </Reveal>
 
           <Reveal>
-            <div className="max-w-[64ch]">
+            <div>
               <H3>LeWorldModel: the recipe gets small and clean</H3>
               <P><B>LeWorldModel (LeWM)</B>, from LeCun, Balestriero and collaborators in March 2026, is the clearest statement of the thesis so far. It learns an action-conditioned world model <Hi>directly from raw pixels</Hi> — no pixel reconstruction, no reward, no frozen pretrained encoder, and crucially <Hi>no EMA or stop-gradient</Hi>. Just an encoder and a predictor, trained jointly, with a two-term objective.</P>
             </div>
@@ -2309,7 +2291,7 @@ function CourseBody({ dark, setDark }) {
               <span style={{ color: C.textFaint }}># SIGReg: keep the embedding cloud an isotropic Gaussian → no collapse</span><br/>
               <span style={{ color: C.textFaint }}># λ is effectively the ONLY hyperparameter to tune</span>
             </div>
-            <div className="max-w-[64ch]">
+            <div>
               <P>The payoff is startling in its modesty. The encoder is a <B>ViT-Tiny</B> (~5 million parameters; about <Hi>15 million</Hi> for the whole model including the predictor), trainable on a single GPU in a few hours. Each frame becomes one 192-dimensional token (roughly 200× fewer than DINO-WM), so planning with the Cross-Entropy Method — encode a start and goal image, search action sequences whose predicted final embedding lands nearest the goal — finishes in about <Hi>one second</Hi>, roughly <Hi>48× faster</Hi> than DINO-WM. It beats PLDM by 18% on the Push-T task and stays competitive with DINO-WM even when DINO-WM is handed extra information.</P>
             </div>
             <Aside tag="Stay honest" color={C.amber}>
@@ -2319,7 +2301,7 @@ function CourseBody({ dark, setDark }) {
 
           <Reveal>
             <H3>Why this is the moment — AMI Labs</H3>
-            <div className="max-w-[64ch]">
+            <div>
               <P>This research isn't staying in the lab. In late 2025 LeCun left Meta after ~12 years leading FAIR, and in December 2025 co-founded <B>AMI Labs</B> — Advanced Machine Intelligence (and "ami," French for <em>friend</em>) — a Paris-based company built explicitly on the bet that <Hi>world models, not bigger LLMs</Hi>, are the path to machine intelligence that understands the physical world, holds persistent memory, and plans. It raised a ~$1B seed in early 2026, among the largest ever, with LeCun as executive chairman.</P>
               <P>That is the throughline this entire course has been tracing. The argument from the very first section — <Hi>predict the representation, not the pixels</Hi> — is no longer just a paper. It's a research program with a billion dollars behind it, a string of models from I-JEPA to LeWM making it concrete, and an open question at its heart: can a machine that learns the world by watching, the way a child does, get to intelligence that scaling text never will? Nobody knows yet. That's what makes it worth understanding deeply.</P>
             </div>
@@ -2460,7 +2442,7 @@ function CourseBody({ dark, setDark }) {
                 ["Ha & Schmidhuber — World Models (2018)", "https://arxiv.org/abs/1803.10122"],
                 ["Grill et al. — BYOL (2020)", "https://arxiv.org/abs/2006.07733"],
                 ["Chen & He — SimSiam (2021)", "https://arxiv.org/abs/2011.10566"],
-                ["Bardes, Ponce & LeCun — VICReg (2021)", "https://arxiv.org/abs/2105.04906"],
+                ["Bardes, Ponce & LeCun — VICReg (2022)", "https://arxiv.org/abs/2105.04906"],
                 ["LeCun — A Path Towards Autonomous Machine Intelligence (2022)", "https://openreview.net/pdf?id=BZ5a1r-kVsf"],
                 ["Assran et al. — I-JEPA paper, CVPR (2023)", "https://arxiv.org/abs/2301.08243"],
                 ["Meta — I-JEPA blog (2023)", "https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/"],
