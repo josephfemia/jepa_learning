@@ -88,13 +88,57 @@ function Markdown({ source }) {
   );
 }
 
+/* a small, dependency-free Python highlighter (handles comments, single/double and
+   triple-quoted strings incl. f/r/b prefixes, numbers, keywords, builtins, decorators,
+   and function calls). Tokenizes the whole block so multi-line docstrings stay strings. */
+const PY_KW = new Set(("def class return for in if elif else while with as import from lambda try " +
+  "except finally raise yield pass break continue not and or is global nonlocal assert del async await").split(" "));
+const PY_CONST = new Set(["None", "True", "False"]);
+const PY_BUILTIN = new Set(("print range len enumerate zip int float str bool list dict set tuple sum min max abs " +
+  "map filter sorted reversed open super isinstance getattr setattr hasattr round type id format").split(" "));
+const PYC = { com: "#8a8578", str: "#b6c98f", kw: "#c8a6f2", konst: "#e0a766", self: "#e0a766",
+  builtin: "#7fb8ff", fn: "#6fc7b6", num: "#e0b072", dec: "#e0a766", def: "#e8e6e1" };
+const escHtml = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+function pyHighlight(code) {
+  let out = "", i = 0; const n = code.length;
+  const push = (s, c) => { out += c ? `<span style="color:${c}">${escHtml(s)}</span>` : escHtml(s); };
+  while (i < n) {
+    const ch = code[i];
+    if (ch === "#") { let j = code.indexOf("\n", i); if (j < 0) j = n; push(code.slice(i, j), PYC.com); i = j; continue; }
+    if (code.startsWith('"""', i) || code.startsWith("'''", i)) {
+      const q = code.substr(i, 3); let j = code.indexOf(q, i + 3); j = j < 0 ? n : j + 3; push(code.slice(i, j), PYC.str); i = j; continue;
+    }
+    const pfx = /[frbuFRBU]{1,2}/.exec(code.slice(i, i + 2));
+    const quoteAt = pfx && (code[i + pfx[0].length] === '"' || code[i + pfx[0].length] === "'") ? i + pfx[0].length : (ch === '"' || ch === "'" ? i : -1);
+    if (quoteAt >= 0) {
+      const q = code[quoteAt]; let j = quoteAt + 1;
+      while (j < n && code[j] !== q && code[j] !== "\n") { if (code[j] === "\\") j++; j++; }
+      j = Math.min(n, j + 1); push(code.slice(i, j), PYC.str); i = j; continue;
+    }
+    if (ch === "@") { let j = i + 1; while (j < n && /[A-Za-z0-9_.]/.test(code[j])) j++; push(code.slice(i, j), PYC.dec); i = j; continue; }
+    if (/[0-9]/.test(ch)) { let j = i; while (j < n && /[0-9._eExXa-fA-F+]/.test(code[j])) j++; push(code.slice(i, j), PYC.num); i = j; continue; }
+    if (/[A-Za-z_]/.test(ch)) {
+      let j = i; while (j < n && /[A-Za-z0-9_]/.test(code[j])) j++; const w = code.slice(i, j);
+      let k = j; while (k < n && code[k] === " ") k++;
+      let c = PYC.def;
+      if (PY_KW.has(w)) c = PYC.kw;
+      else if (PY_CONST.has(w)) c = PYC.konst;
+      else if (w === "self" || w === "cls") c = PYC.self;
+      else if (code[k] === "(") c = PYC.fn;
+      else if (PY_BUILTIN.has(w)) c = PYC.builtin;
+      push(w, c); i = j; continue;
+    }
+    push(ch, null); i++;
+  }
+  return out;
+}
+
 function CodeBox({ text }) {
   const C = useTheme();
   return (
-    <pre style={{ background: C.codeBg, color: "#e8e6e1", borderRadius: 12, padding: "16px 18px", overflowX: "auto", fontFamily: "var(--font-mono)", fontSize: 13, lineHeight: 1.7, margin: "1.2em 0", border: `1px solid ${C.line}` }}>
-      {text.split("\n").map((ln, i) => (
-        <div key={i} style={{ color: ln.trimStart().startsWith("#") ? "#7e8aa0" : "#e8e6e1", whiteSpace: "pre" }}>{ln || " "}</div>
-      ))}
+    <pre style={{ background: C.codeBg, color: PYC.def, borderRadius: 12, padding: "16px 18px", overflowX: "auto", fontFamily: "var(--font-mono)", fontSize: 13, lineHeight: 1.7, margin: "1.2em 0", border: `1px solid ${C.line}` }}>
+      <code dangerouslySetInnerHTML={{ __html: pyHighlight(text) }} />
     </pre>
   );
 }
