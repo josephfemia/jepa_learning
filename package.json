@@ -4,6 +4,8 @@
   "version": "1.0.0",
   "type": "module",
   "description": "An interactive course taking a learner from basic ML background to JEPA / world-model expertise.",
+  "license": "MIT",
+  "author": "Joseph Femia",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
