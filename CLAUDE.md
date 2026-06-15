@@ -41,14 +41,21 @@ launch.sh               # one-command dev launcher (npm install if needed + npm 
 src/
   main.jsx              # React root → renders <JepaCourse /> in <React.StrictMode>
   index.css             # Tailwind directives + minimal reset (dark fallback bg)
-  theme.js              # DARK/LIGHT palettes + ThemeContext + useTheme()
+  theme.js              # DARK/LIGHT palettes + ThemeContext + useTheme()  ("Editorial Apple" tokens)
   data.js               # module-scope course data (SECTIONS, SECTION_CHECK, TIMELINE, MODELS, …)
   logic.js              # pure helpers + testable logic (clamp/lerp, scoreQuiz, planCEM, l1Energy)
   logic.test.js         # Vitest unit tests for logic.js
-  JepaCourse.jsx        # all React components + the course body (~2,300 lines)
+  JepaCourse.jsx        # all course components + the course body; default export holds the hash router
+  Notebooks.jsx         # "From-scratch labs" page (#labs): renders the executed .ipynb (md+code+outputs)
+public/notebooks/       # the executed jepa-from-scratch/*.ipynb, copied so Vite serves them at /notebooks
 tailwind.config.js      # scans index.html + src/**
 PROJECT_BRIEF.md        # full handoff doc (READ THIS)
 ```
+
+**Two pages, one tiny hash router** (in the `JepaCourse` default export): `#labs` →
+`NotebooksPage` (the from-scratch notebooks); anything else → the course (`CourseBody`). A "Labs"
+pill in the nav links to `#labs`; the labs page links back. To re-render the labs page after
+editing a notebook, re-copy it into `public/notebooks/`.
 
 **The components and course body live in `src/JepaCourse.jsx`** (theme/data/pure-logic are split
 into the modules above). Read `JepaCourse.jsx` in layers:
@@ -75,6 +82,11 @@ to the `done`-map key its self-test sets. Pure logic that has tests (`scoreQuiz`
 
 ## Conventions & gotchas (read before editing)
 
+- **Design language = "Editorial Apple":** warm-neutral, near-monochrome, ONE calm-blue accent
+  (`C.cyan`), muted semantic tints, hairline borders + soft shadows (no neon glows; `glow≈0`).
+  Type: **Fraunces** (display serif, the only loaded webfont) for headings/pull-quotes; the native
+  **system sans** (`var(--font-sans)`) for body; **system mono** (`var(--font-mono)`) for code. Use
+  these CSS vars / `"Fraunces, Georgia, serif"` rather than reintroducing Inter/Space Grotesk.
 - **Colors come from `useTheme()`**, never hardcoded hex (a few intentional exceptions for the
   always-dark code blocks). Keep new UI theme-aware so **both light and dark** stay correct.
 - **Never reference `C` (the theme) at module scope** — it only exists inside components via the
@@ -97,6 +109,6 @@ to the `done`-map key its self-test sets. Pure logic that has tests (`scoreQuiz`
 - Works in both light and dark mode.
 - Research-grounded, accurate content with primary-source citations.
 - Discovery sequencing — let the learner *arrive* at conclusions; don't overwhelm.
-- Congruent color-coding (blue/teal = signal/focus, green = correct, amber sparingly, red avoided).
+- Congruent color-coding, now as muted tints (blue = signal/focus, green = correct, amber sparingly, red avoided).
 
 **Always finish a change with `npm run build` and a visual check in both light and dark mode.**

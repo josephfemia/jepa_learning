@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react"
 import { DARK, LIGHT, ThemeContext, useTheme } from "./theme.js";
 import { SECTIONS, SECTION_CHECK, TIMELINE, MODELS, GLOSSARY, WORLD_MODELS } from "./data.js";
 import { cx, clamp, lerp, scoreQuiz, planCEM } from "./logic.js";
+import NotebooksPage from "./Notebooks.jsx";
 
 /* ============================================================================
    JEPA — An Interactive Course
@@ -558,16 +559,16 @@ function ContrastiveVsRegularized() {
               <>
                 <path d={d} fill="none" stroke={col} strokeWidth="2.5" />
                 <circle cx={0.38 * 600} cy={dataY} r="6" fill={C.green} />
-                <text x={0.38 * 600} y={dataY + 22} fill={C.green} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">data (low E)</text>
+                <text x={0.38 * 600} y={dataY + 22} fill={C.green} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">data (low E)</text>
                 {!isReg ? (
                   <>
                     {/* a single up-arrow: a negative point has its energy pushed up */}
                     <line x1={0.72 * 600} y1={86} x2={0.72 * 600} y2={56} stroke={C.amber} strokeWidth="2.5" strokeLinecap="round" />
                     <path d={`M ${0.72 * 600} 48 L ${0.72 * 600 - 6} 60 L ${0.72 * 600 + 6} 60 Z`} fill={C.amber} />
-                    <text x={0.72 * 600} y={102} fill={C.amber} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">negative</text>
+                    <text x={0.72 * 600} y={102} fill={C.amber} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">negative</text>
                   </>
                 ) : (
-                  <text x={510} y={56} fill={C.cyan} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">all else: high</text>
+                  <text x={510} y={56} fill={C.cyan} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">all else: high</text>
                 )}
               </>
             );
@@ -627,12 +628,12 @@ function MaskingStrategyViz() {
                   fill="none" stroke={C.line} strokeWidth="0.5" />
               ))}
               <rect x="10" y="10" width="180" height="180" fill={C.cyan} opacity="0.12" stroke={C.cyan} strokeWidth="1.5" rx="3" />
-              <text x="16" y="26" fill={C.cyan} fontSize="9" fontFamily="JetBrains Mono">context 85–100%</text>
+              <text x="16" y="26" fill={C.cyan} fontSize="9" fontFamily="ui-monospace, Menlo, monospace">context 85–100%</text>
               {layout.targets.map((t, i) => (
                 <rect key={i} x={t.x * 200} y={t.y * 200} width={t.w * 200} height={t.h * 200}
                   fill={C.violet} opacity="0.35" stroke={C.violet} strokeWidth="1.5" rx="2" />
               ))}
-              <text x="100" y="196" fill={C.violet} fontSize="9" fontFamily="JetBrains Mono" textAnchor="middle">4 targets · 15–20% each</text>
+              <text x="100" y="196" fill={C.violet} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">4 targets · 15–20% each</text>
             </svg>
             <button onClick={() => setSeed((s) => s + 1)}
               className="mt-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-all"
@@ -979,7 +980,7 @@ function ModelExplorer() {
           <div className="flex gap-5 flex-wrap pt-4 mt-2" style={{ borderTop: `1px solid #1b2436` }}>
             {m.stats.map(([v, l], i) => (
               <div key={i} className="min-w-[110px]">
-                <div className="font-bold text-2xl leading-none" style={{ color: C.cyan, fontFamily: "Space Grotesk, sans-serif" }}>{v}</div>
+                <div className="font-bold text-2xl leading-none" style={{ color: C.cyan, fontFamily: "Fraunces, Georgia, serif" }}>{v}</div>
                 <div className="text-[12px] font-mono mt-1.5" style={{ color: C.textFaint }}>{l}</div>
               </div>
             ))}
@@ -1222,53 +1223,53 @@ function ArchitectureDiagram() {
         </defs>
 
         {/* context (top) branch */}
-        <text x="60" y="70" fill={txt} fontSize="12" fontFamily="JetBrains Mono" textAnchor="middle">context x</text>
+        <text x="60" y="70" fill={txt} fontSize="12" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">context x</text>
         <rect x="24" y="80" width="72" height="46" rx="8" fill={C.ink3} stroke={C.cyan} />
-        <text x="60" y="100" fill={C.cyan} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">visible</text>
-        <text x="60" y="114" fill={C.cyan} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">patches</text>
+        <text x="60" y="100" fill={C.cyan} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">visible</text>
+        <text x="60" y="114" fill={C.cyan} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">patches</text>
 
         <line x1="96" y1="103" x2="150" y2="103" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
         <rect x="150" y="78" width="104" height="50" rx="8" fill={C.ink3} stroke={C.cyan} />
-        <text x="202" y="98" fill={C.textHi} fontSize="12" fontFamily="Space Grotesk" textAnchor="middle">Context</text>
-        <text x="202" y="113" fill={C.textHi} fontSize="12" fontFamily="Space Grotesk" textAnchor="middle">Encoder</text>
-        <text x="202" y="142" fill={sub} fontSize="9.5" fontFamily="JetBrains Mono" textAnchor="middle">trained · ViT</text>
+        <text x="202" y="98" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Context</text>
+        <text x="202" y="113" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Encoder</text>
+        <text x="202" y="142" fill={sub} fontSize="9.5" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">trained · ViT</text>
 
         <line x1="254" y1="103" x2="300" y2="103" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
-        <circle cx="318" cy="103" r="18" fill={C.ink3} stroke={C.cyan} /><text x="318" y="107" fill={C.cyan} fontSize="12" fontFamily="JetBrains Mono" textAnchor="middle">s_x</text>
+        <circle cx="318" cy="103" r="18" fill={C.ink3} stroke={C.cyan} /><text x="318" y="107" fill={C.cyan} fontSize="12" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">s_x</text>
 
         {/* predictor */}
         <line x1="336" y1="103" x2="386" y2="103" stroke={C.cyan} strokeWidth="2" markerEnd="url(#arrowC)" />
         <rect x="386" y="78" width="104" height="50" rx="8" fill={C.ink3} stroke={C.cyan} strokeWidth="1.6" />
-        <text x="438" y="98" fill={C.textHi} fontSize="12" fontFamily="Space Grotesk" textAnchor="middle">Predictor</text>
-        <text x="438" y="113" fill={txt} fontSize="9" fontFamily="JetBrains Mono" textAnchor="middle">+ target pos / z</text>
-        <text x="438" y="142" fill={sub} fontSize="9.5" fontFamily="JetBrains Mono" textAnchor="middle">narrow ViT</text>
+        <text x="438" y="98" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Predictor</text>
+        <text x="438" y="113" fill={txt} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">+ target pos / z</text>
+        <text x="438" y="142" fill={sub} fontSize="9.5" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">narrow ViT</text>
 
         <line x1="490" y1="103" x2="536" y2="103" stroke={C.cyan} strokeWidth="2" markerEnd="url(#arrowC)" />
-        <circle cx="556" cy="103" r="20" fill={C.ink3} stroke={C.cyan} strokeDasharray="3 2" /><text x="556" y="107" fill={C.cyan} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">ŝ_y</text>
+        <circle cx="556" cy="103" r="20" fill={C.ink3} stroke={C.cyan} strokeDasharray="3 2" /><text x="556" y="107" fill={C.cyan} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">ŝ_y</text>
 
         {/* target (bottom) branch */}
-        <text x="60" y="250" fill={txt} fontSize="12" fontFamily="JetBrains Mono" textAnchor="middle">target y</text>
+        <text x="60" y="250" fill={txt} fontSize="12" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">target y</text>
         <rect x="24" y="258" width="72" height="46" rx="8" fill={C.ink3} stroke={C.violet} />
-        <text x="60" y="285" fill={C.violet} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">full input</text>
+        <text x="60" y="285" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">full input</text>
 
         <line x1="96" y1="281" x2="150" y2="281" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
         <rect x="150" y="256" width="104" height="50" rx="8" fill={C.ink3} stroke={C.violet} />
-        <text x="202" y="276" fill={C.textHi} fontSize="12" fontFamily="Space Grotesk" textAnchor="middle">Target</text>
-        <text x="202" y="291" fill={C.textHi} fontSize="12" fontFamily="Space Grotesk" textAnchor="middle">Encoder</text>
-        <text x="202" y="320" fill={sub} fontSize="9.5" fontFamily="JetBrains Mono" textAnchor="middle">EMA · stop-grad</text>
+        <text x="202" y="276" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Target</text>
+        <text x="202" y="291" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Encoder</text>
+        <text x="202" y="320" fill={sub} fontSize="9.5" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">EMA · stop-grad</text>
 
         <line x1="254" y1="281" x2="528" y2="281" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
-        <circle cx="556" cy="281" r="20" fill={C.ink3} stroke={C.violet} /><text x="556" y="285" fill={C.violet} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">s_y</text>
+        <circle cx="556" cy="281" r="20" fill={C.ink3} stroke={C.violet} /><text x="556" y="285" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">s_y</text>
 
         {/* EMA weight-copy arrow (context -> target) */}
         <path d="M202,128 C150,165 150,220 202,256" fill="none" stroke={sub} strokeWidth="1.3" strokeDasharray="4 3" markerEnd="url(#arrowN)" />
-        <text x="120" y="195" fill={sub} fontSize="9" fontFamily="JetBrains Mono" textAnchor="middle">EMA copy</text>
+        <text x="120" y="195" fill={sub} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">EMA copy</text>
 
         {/* loss between ŝ_y and s_y */}
         <line x1="556" y1="123" x2="556" y2="261" stroke={C.amber} strokeWidth="1.5" strokeDasharray="3 3" />
         <rect x="600" y="168" width="96" height="48" rx="8" fill={C.ink3} stroke={C.amber} />
-        <text x="648" y="188" fill={C.amber} fontSize="11" fontFamily="Space Grotesk" textAnchor="middle">loss</text>
-        <text x="648" y="204" fill={txt} fontSize="9" fontFamily="JetBrains Mono" textAnchor="middle">‖ŝ_y − s_y‖</text>
+        <text x="648" y="188" fill={C.amber} fontSize="11" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">loss</text>
+        <text x="648" y="204" fill={txt} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">‖ŝ_y − s_y‖</text>
         <line x1="576" y1="103" x2="600" y2="180" stroke={C.amber} strokeWidth="1.3" strokeDasharray="3 3" />
         <line x1="576" y1="281" x2="600" y2="206" stroke={C.amber} strokeWidth="1.3" strokeDasharray="3 3" />
       </svg>
@@ -1419,7 +1420,7 @@ function LatentPlanningLab() {
             <div className="grid grid-cols-3 gap-2 mb-4">
               {[["horizon", HORIZON, "actions/plan"], ["samples", N, "per iteration"], ["elites", ELITE, "kept (CEM)"]].map(([k,v,l])=>(
                 <div key={k} className="rounded-xl p-3 text-center" style={{ background: C.ink3 }}>
-                  <div className="font-bold text-xl" style={{ color: C.cyan, fontFamily:"Space Grotesk" }}>{v}</div>
+                  <div className="font-bold text-xl" style={{ color: C.cyan, fontFamily:"Fraunces, Georgia, serif" }}>{v}</div>
                   <div className="text-[10px] font-mono mt-1" style={{ color: C.textFaint }}>{l}</div>
                 </div>
               ))}
@@ -1430,7 +1431,7 @@ function LatentPlanningLab() {
               {reached ? (
                 <span><span style={{color:C.cyan}}>Goal reached.</span> Notice it never rendered a single pixel — every rollout was scored by L1 distance between <em>predicted</em> and <em>goal</em> embeddings. That's why this is fast enough to run on a real arm.</span>
               ) : running ? (
-                <span>Planning… each faint path is an imagined action sequence rolled out through the predictor. The bright ones are the elites the Cross-Entropy Method keeps to refine its next guess. Step <span style={{color:C.cyan, fontFamily:"JetBrains Mono"}}>{step}</span>.</span>
+                <span>Planning… each faint path is an imagined action sequence rolled out through the predictor. The bright ones are the elites the Cross-Entropy Method keeps to refine its next guess. Step <span style={{color:C.cyan, fontFamily:"ui-monospace, Menlo, monospace"}}>{step}</span>.</span>
               ) : (
                 <span>Ready. The robot has no policy and no map — only a predictor that answers "if I take these actions, where will my latent state be?" Planning means searching that predictor for actions that land near the goal.</span>
               )}
@@ -1461,6 +1462,9 @@ function LatentPlanningLab() {
 /*  Hero canvas — drifting latent space with a few glowing "signal" nodes      */
 /* ========================================================================== */
 function HeroCanvas() {
+  // calm, near-invisible atmosphere: a few large, soft, slowly drifting blobs in
+  // the accent hue — "points in a latent space" rendered as quiet bokeh, no lines,
+  // no glow. Replaces the old techy particle network.
   const C = useTheme();
   const ref = useRef(null);
   useEffect(() => {
@@ -1468,53 +1472,36 @@ function HeroCanvas() {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const ctx = cv.getContext("2d");
     const DPR = Math.min(2, window.devicePixelRatio || 1);
-    // signal nodes use the cyan accent; neutral nodes/links adapt to theme
-    const sigRGB = C.isDark ? "56,225,214" : "13,148,136";
-    const dimRGB = C.isDark ? "80,98,140" : "150,160,180";
-    const dotRGB = C.isDark ? "150,165,200" : "120,132,150";
+    const rgb = C.isDark ? "110,162,255" : "47,109,240";   // the accent, as soft fog
     let pts = [], raf = 0;
     const init = () => {
       cv.width = cv.offsetWidth * DPR; cv.height = cv.offsetHeight * DPR;
-      const n = Math.min(64, Math.floor((cv.width * cv.height) / 26000));
+      const n = Math.max(5, Math.min(14, Math.floor((cv.width * cv.height) / 240000)));
       pts = Array.from({ length: n }, () => ({
         x: Math.random() * cv.width, y: Math.random() * cv.height,
-        vx: (Math.random() - 0.5) * 0.16 * DPR, vy: (Math.random() - 0.5) * 0.16 * DPR,
-        r: (Math.random() * 1.5 + 0.6) * DPR, sig: Math.random() < 0.22,
+        vx: (Math.random() - 0.5) * 0.05 * DPR, vy: (Math.random() - 0.5) * 0.05 * DPR,
+        r: (Math.random() * 90 + 70) * DPR, a: Math.random() * 0.05 + 0.02,
       }));
     };
     const frame = () => {
-      const W = cv.width, H = cv.height, R = 150 * DPR;
-      ctx.clearRect(0, 0, W, H);
-      for (let i = 0; i < pts.length; i++) {
-        const p = pts[i];
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0 || p.x > W) p.vx *= -1;
-        if (p.y < 0 || p.y > H) p.vy *= -1;
-        for (let j = i + 1; j < pts.length; j++) {
-          const q = pts[j], dx = p.x - q.x, dy = p.y - q.y, d = Math.hypot(dx, dy);
-          if (d < R) {
-            const a = (1 - d / R) * 0.5;
-            ctx.strokeStyle = (p.sig || q.sig) ? `rgba(${sigRGB},${a * 0.55})` : `rgba(${dimRGB},${a * 0.3})`;
-            ctx.lineWidth = DPR * 0.6;
-            ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke();
-          }
-        }
-      }
+      const W = cv.width, H = cv.height; ctx.clearRect(0, 0, W, H);
       for (const p of pts) {
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7);
-        if (p.sig) { ctx.fillStyle = `rgba(${sigRGB},.95)`; ctx.shadowColor = `rgba(${sigRGB},${C.glow})`; ctx.shadowBlur = 10 * DPR; }
-        else { ctx.fillStyle = `rgba(${dotRGB},.5)`; ctx.shadowBlur = 0; }
-        ctx.fill(); ctx.shadowBlur = 0;
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < -p.r || p.x > W + p.r) p.vx *= -1;
+        if (p.y < -p.r || p.y > H + p.r) p.vy *= -1;
+        const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r);
+        g.addColorStop(0, `rgba(${rgb},${p.a})`); g.addColorStop(1, `rgba(${rgb},0)`);
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, 7); ctx.fill();
       }
       raf = requestAnimationFrame(frame);
     };
     init(); frame();
-    if (reduce) cancelAnimationFrame(raf);
+    if (reduce) cancelAnimationFrame(raf);          // draw one static frame, then stop
     let to; const onR = () => { clearTimeout(to); to = setTimeout(init, 200); };
     window.addEventListener("resize", onR);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onR); };
   }, [C.isDark]);
-  return <canvas ref={ref} aria-hidden="true" className="absolute inset-0 w-full h-full" style={{ opacity: C.isDark ? 0.55 : 0.7 }} />;
+  return <canvas ref={ref} aria-hidden="true" className="absolute inset-0 w-full h-full" />;
 }
 
 /* ========================================================================== */
@@ -1537,26 +1524,26 @@ function HJepaDiagram() {
         </defs>
 
         {/* abstract (top) level */}
-        <text x="34" y="58" fill={C.violet} fontSize="11" fontFamily="JetBrains Mono">level 2 · abstract state · long horizon</text>
+        <text x="34" y="58" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace">level 2 · abstract state · long horizon</text>
         <circle cx="220" cy="96" r="20" fill={C.ink3} stroke={C.violet} />
-        <text x="220" y="100" fill={C.violet} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">a_t</text>
+        <text x="220" y="100" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">a_t</text>
         <line x1="242" y1="96" x2="478" y2="96" stroke={C.violet} strokeWidth="2" markerEnd="url(#hV)" />
-        <text x="360" y="88" fill={sub} fontSize="9" fontFamily="JetBrains Mono" textAnchor="middle">predict (coarse, few steps)</text>
+        <text x="360" y="88" fill={sub} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">predict (coarse, few steps)</text>
         <circle cx="500" cy="96" r="20" fill={C.ink3} stroke={C.violet} />
-        <text x="500" y="100" fill={C.violet} fontSize="11" fontFamily="JetBrains Mono" textAnchor="middle">a_t+1</text>
+        <text x="500" y="100" fill={C.violet} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">a_t+1</text>
 
         {/* abstraction up + subgoal down */}
         <line x1="150" y1="212" x2="206" y2="116" stroke={C.textFaint} strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#hN)" />
-        <text x="120" y="165" fill={sub} fontSize="9" fontFamily="JetBrains Mono">abstract ↑</text>
+        <text x="120" y="165" fill={sub} fontSize="9" fontFamily="ui-monospace, Menlo, monospace">abstract ↑</text>
         <line x1="508" y1="116" x2="566" y2="212" stroke={C.violet} strokeWidth="1.2" strokeDasharray="4 3" markerEnd="url(#hV)" />
-        <text x="556" y="165" fill={C.violet} fontSize="9" fontFamily="JetBrains Mono">subgoal ↓</text>
+        <text x="556" y="165" fill={C.violet} fontSize="9" fontFamily="ui-monospace, Menlo, monospace">subgoal ↓</text>
 
         {/* detailed (bottom) level */}
-        <text x="34" y="248" fill={C.cyan} fontSize="11" fontFamily="JetBrains Mono">level 1 · detailed state · short horizon</text>
+        <text x="34" y="248" fill={C.cyan} fontSize="11" fontFamily="ui-monospace, Menlo, monospace">level 1 · detailed state · short horizon</text>
         {bottom.map(([lab, x], i) => (
           <g key={lab}>
             <circle cx={x} cy={228} r="15" fill={C.ink3} stroke={C.cyan} />
-            <text x={x} y={232} fill={C.cyan} fontSize="10" fontFamily="JetBrains Mono" textAnchor="middle">{lab}</text>
+            <text x={x} y={232} fill={C.cyan} fontSize="10" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">{lab}</text>
             {i < bottom.length - 1 && (
               <line x1={x + 15} y1={228} x2={bottom[i + 1][1] - 15} y2={228} stroke={C.cyan} strokeWidth="1.8" markerEnd="url(#hC)" />
             )}
@@ -1668,7 +1655,7 @@ function Heading({ num, eyebrow, title, intro }) {
     <Reveal>
       <Eyebrow num={num}>{eyebrow}</Eyebrow>
       <h2 className="font-bold tracking-tight mb-5 text-[clamp(28px,5vw,44px)] leading-tight"
-          style={{ color: C.textHi, fontFamily: "Space Grotesk, sans-serif", maxWidth: "20ch" }}>
+          style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif", maxWidth: "20ch" }}>
         {title}
       </h2>
       {intro && <p className="text-[19px] leading-relaxed mb-2" style={{ color: C.textDim, maxWidth: "64ch" }}>{intro}</p>}
@@ -1681,7 +1668,7 @@ function P({ children }) {
 }
 function H3({ children }) {
   const C = useTheme();
-  return <h3 className="text-[22px] font-semibold mt-10 mb-3" style={{ color: C.textHi, fontFamily: "Space Grotesk, sans-serif" }}>{children}</h3>;
+  return <h3 className="text-[22px] font-semibold mt-10 mb-3" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>{children}</h3>;
 }
 const Hi = ({ children, c }) => { const C = useTheme(); return <span style={{ color: c || C.cyan }}>{children}</span>; };
 const B = ({ children }) => { const C = useTheme(); return <strong style={{ color: C.textHi, fontWeight: 600 }}>{children}</strong>; };
@@ -1698,9 +1685,18 @@ export default function JepaCourse() {
     return !window.matchMedia("(prefers-color-scheme: light)").matches;
   });
   const theme = dark ? DARK : LIGHT;
+  // tiny hash router so the from-scratch labs are a real, shareable separate page
+  const [route, setRoute] = useState(() => (typeof window !== "undefined" ? window.location.hash.replace(/^#\/?/, "") : ""));
+  useEffect(() => {
+    const f = () => setRoute(window.location.hash.replace(/^#\/?/, ""));
+    window.addEventListener("hashchange", f);
+    return () => window.removeEventListener("hashchange", f);
+  }, []);
   return (
     <ThemeContext.Provider value={theme}>
-      <CourseBody dark={dark} setDark={setDark} />
+      {route === "labs"
+        ? <NotebooksPage dark={dark} setDark={setDark} />
+        : <CourseBody dark={dark} setDark={setDark} />}
     </ThemeContext.Provider>
   );
 }
@@ -1717,27 +1713,36 @@ function CourseBody({ dark, setDark }) {
     setMenuOpen(false);
   };
 
-  // nav background respects theme (was hardcoded dark rgba before)
-  const navBg = dark ? "rgba(10,14,26,.82)" : "rgba(247,248,251,.85)";
-  const progressTrack = dark ? "#11192b" : "#e2e7f0";
+  // nav background respects theme (warm neutrals)
+  const navBg = dark ? "rgba(21,20,15,.82)" : "rgba(250,249,246,.85)";
+  const progressTrack = C.line;
 
   return (
-    <div style={{ background: C.ink, color: C.text, fontFamily: "Inter, system-ui, sans-serif" }}
+    <div style={{ background: C.ink, color: C.text, fontFamily: 'var(--font-sans)' }}
          className="min-h-screen w-full overflow-x-hidden transition-colors duration-500">
-      {/* font + selection styling */}
+      {/* font + selection styling — one elegant display serif (Fraunces), native
+          system sans for body (authentic, zero-load), system mono for code */}
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&family=Newsreader:ital@0;1&display=swap');
-        .font-mono{font-family:'JetBrains Mono',monospace}
-        ::selection{background:${C.cyan};color:${C.ink}}
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap');
+        :root{
+          --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
+          --font-sans:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
+          --font-mono:ui-monospace, 'SF Mono', 'ui-monospace, Menlo, monospace', Menlo, Consolas, monospace;
+        }
+        *{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+        body{font-family:var(--font-sans)}
+        .font-mono{font-family:var(--font-mono)}
+        h1,h2,h3{font-optical-sizing:auto; letter-spacing:-0.015em}
+        ::selection{background:${C.cyan}26;color:${C.textHi}}
         html{scroll-behavior:smooth}
         input[type=range]{accent-color:${C.cyan}}
         @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
       `}</style>
 
       {/* top progress bar */}
-      <div className="fixed top-0 left-0 right-0 z-[60] h-[3px]" style={{ background: progressTrack }}>
+      <div className="fixed top-0 left-0 right-0 z-[60] h-[2px]" style={{ background: progressTrack }}>
         <div className="h-full transition-[width] duration-150"
-             style={{ width: `${p * 100}%`, background: `linear-gradient(90deg, ${C.violet}, ${C.cyan})` }} />
+             style={{ width: `${p * 100}%`, background: C.cyan }} />
       </div>
 
       {/* nav */}
@@ -1745,8 +1750,8 @@ function CourseBody({ dark, setDark }) {
            style={{ background: navBg, borderColor: C.line }}>
         <div className="max-w-[1080px] mx-auto px-6 py-3 flex items-center justify-between gap-4">
           <button onClick={() => go("top")} className="flex items-center gap-2.5 shrink-0">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ background: C.cyan, boxShadow: `0 0 12px ${C.cyan}` }} />
-            <span className="font-bold text-[14px] tracking-wide" style={{ color: C.textHi, fontFamily: "Space Grotesk" }}>
+            <span className="w-2 h-2 rounded-full" style={{ background: C.cyan }} />
+            <span className="font-bold text-[14px] tracking-wide" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>
               PREDICT THE REPRESENTATION
             </span>
           </button>
@@ -1762,6 +1767,12 @@ function CourseBody({ dark, setDark }) {
                 </button>
               ))}
             </div>
+            {/* link to the from-scratch labs (separate page, hash route) */}
+            <a href="#labs" title="From-scratch notebooks"
+               className="inline-flex items-center font-mono text-[11px] tracking-wide uppercase px-3 py-1.5 rounded-full transition-all shrink-0"
+               style={{ color: C.cyan, border: `1px solid ${C.cyan}55` }}>
+              Labs
+            </a>
             {/* mobile / tablet sections menu (below the lg breakpoint where the
                 inline nav is hidden, so sections stay reachable on small screens) */}
             <div className="lg:hidden relative">
@@ -1803,12 +1814,12 @@ function CourseBody({ dark, setDark }) {
              style={{ background: `radial-gradient(ellipse 70% 60% at 68% 42%, transparent, ${C.ink} 78%)` }} />
         <div className="relative z-[2] max-w-[1080px] mx-auto px-6 w-full">
           <Eyebrow>An interactive course · Joint-Embedding Predictive Architecture</Eyebrow>
-          <h1 className="font-bold tracking-tight text-[clamp(40px,8vw,82px)] leading-[1.02] mb-2"
-              style={{ color: C.textHi, fontFamily: "Space Grotesk, sans-serif", maxWidth: "15ch" }}>
+          <h1 className="tracking-tight text-[clamp(40px,7.5vw,78px)] leading-[1.05] mb-2"
+              style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif", fontWeight: 560, maxWidth: "16ch" }}>
             Don't predict the{" "}
-            <span style={{ color: C.amber, textDecoration: "line-through", textDecorationThickness: 3, textDecorationColor: C.amber }}>
+            <span style={{ color: C.textDim, textDecoration: "line-through", textDecorationThickness: 2, textDecorationColor: C.amber }}>
               pixels
-            </span>.<br />Predict the <span style={{ color: C.cyan }}>representation</span>.
+            </span>.<br />Predict the <span style={{ color: C.cyan, fontStyle: "italic" }}>representation</span>.
           </h1>
           <p className="text-[clamp(17px,2.3vw,21px)] leading-relaxed mt-7" style={{ color: C.textDim, maxWidth: "54ch" }}>
             Yann LeCun's bet on how machines might learn to <B>reason, plan, and understand the physical world</B>.
@@ -1821,8 +1832,8 @@ function CourseBody({ dark, setDark }) {
           </p>
           <div className="flex items-center gap-3 mt-9 flex-wrap">
             <button onClick={() => go("idea")}
-              className="rounded-xl px-6 py-3.5 font-semibold text-[15px] transition-all hover:opacity-90"
-              style={{ background: C.cyan, color: C.ink }}>
+              className="rounded-full px-7 py-3 font-medium text-[15px] transition-all hover:opacity-90"
+              style={{ background: C.cyan, color: "#fff" }}>
               Start learning →
             </button>
             <span className="font-mono text-[12px] tracking-wide" style={{ color: C.textFaint }}>
@@ -2138,7 +2149,7 @@ function CourseBody({ dark, setDark }) {
             </div>
             <div className="my-10 text-center">
               <p className="text-[clamp(20px,3.2vw,28px)] leading-snug italic mx-auto"
-                 style={{ fontFamily: "Newsreader, serif", color: C.textHi, maxWidth: "24ch" }}>
+                 style={{ fontFamily: "Fraunces, Georgia, serif", color: C.textHi, maxWidth: "24ch" }}>
                 "Generative methods try to fill in every bit of missing information, even though the world is inherently unpredictable."
               </p>
               <span className="font-mono text-[12px] tracking-wider uppercase mt-4 inline-block" style={{ color: C.cyan }}>
@@ -2419,7 +2430,7 @@ function CourseBody({ dark, setDark }) {
           <Reveal>
             <div className="my-8 text-center">
               <p className="text-[clamp(19px,3vw,26px)] leading-snug mx-auto"
-                 style={{ fontFamily: "Newsreader, serif", color: C.textHi, maxWidth: "26ch" }}>
+                 style={{ fontFamily: "Fraunces, Georgia, serif", color: C.textHi, maxWidth: "26ch" }}>
                 Predict the representation, regularize the geometry, plan in latent space.
               </p>
               <span className="font-mono text-[12px] tracking-wider uppercase mt-4 inline-block" style={{ color: C.cyan }}>
@@ -2434,7 +2445,7 @@ function CourseBody({ dark, setDark }) {
       <footer className="border-t py-14" style={{ borderColor: C.line, background: C.ink2 }}>
         <div className="max-w-[1080px] mx-auto px-6 grid md:grid-cols-2 gap-10">
           <div>
-            <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "Space Grotesk" }}>About this course</h4>
+            <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>About this course</h4>
             <p className="text-[14px] leading-relaxed" style={{ color: C.textDim }}>
               A ground-up, interactive walkthrough of Joint-Embedding Predictive Architectures — built to take you
               from surface intuition to design rationale through prediction, manipulation, and retrieval rather than
@@ -2442,7 +2453,7 @@ function CourseBody({ dark, setDark }) {
             </p>
           </div>
           <div>
-            <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "Space Grotesk" }}>Primary sources</h4>
+            <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>Primary sources</h4>
             <ul className="space-y-2 text-[13.5px]" style={{ color: C.textDim }}>
               {[
                 ["van den Oord et al. — Contrastive Predictive Coding (2018)", "https://arxiv.org/abs/1807.03748"],

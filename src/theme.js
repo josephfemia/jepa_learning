@@ -1,39 +1,39 @@
 import React from "react";
 
 /* ----------------------------- design tokens -----------------------------
-   Palette is grounded in color-and-learning research:
-   • Blue/teal is the most consistently evidenced color for sustained focus,
-     calm, and problem-solving — so it's our PRIMARY (cyan = the "signal" /
-     latent space, the thing we want you concentrating on).
-   • Green aids retention and reads as success — it's our dedicated CORRECT/OK
-     signal (kept distinct from the teal brand accent).
-   • Warm amber is used sparingly for arousal/attention and to mark the "pixel /
-     generative world" foil; red is avoided (raises anxiety).
-   • Semantic color-coding is consistent throughout (cyan=latent, amber=pixel,
-     violet=energy/abstraction, green=correct) because congruent color-coding
-     measurably improves recall. The legend in the hero makes this explicit.
-   Two palettes (dark default + light); surfaces/text flip, hues stay congruent. */
-export const DARK = {
-  cyan: "#3ee0d4", cyanDeep: "#15b3a8",   // focus/latent (blue-teal)
-  amber: "#f2ad52", amberDeep: "#c4801f", // attention/pixel-world (sparing)
-  violet: "#a394ff",                       // energy/abstraction
-  green: "#5fd99a", greenDeep: "#2fae74",  // correct/success (retention-friendly)
-  ink: "#0b1020", ink2: "#11172a", ink3: "#18203a", line: "#27314d",
-  text: "#dde2ef", textHi: "#f5f8ff", textDim: "#97a1b8", textFaint: "#65708c",
-  codeBg: "#0a0f1c", codeBar: "#0e1424", glow: 0.9, isDark: true,
-  okBg: "#16352e", warnBg: "#2c2415",
-};
+   "Editorial Apple": calm, warm-neutral, near-monochrome, with ONE restrained
+   accent. Grounded in learning/perception research:
+   • Low overall saturation + neutral-dominant surfaces reduce visual fatigue and
+     extraneous cognitive load over long reading sessions (cognitive-load theory).
+   • A single calm BLUE accent carries focus/links/"the signal" — blue is the most
+     consistently evidenced hue for sustained concentration and calm.
+   • High text-to-background contrast (AA+) is the biggest lever on readability.
+   • Semantic coding is preserved but de-saturated to gentle TINTS, not neon:
+     blue = signal/latent, green = correct, amber = the "pixel/generative" foil,
+     violet = energy (used rarely). Restraint reads as elegant; rainbows read as noise.
+   • Warm (not cold-gray) neutrals + soft hairlines + real (not glowing) shadows
+     feel human and physical rather than synthetic. glow≈0 on purpose.
+   Token NAMES are stable (components read C.cyan etc.); only the VALUES changed. */
 export const LIGHT = {
-  // hues deepened for AA contrast on light surfaces; same semantic roles
-  cyan: "#0e8d82", cyanDeep: "#0b6b62",
-  amber: "#b56a09", amberDeep: "#8f5207",
-  violet: "#6450c8",
-  green: "#1f9d63", greenDeep: "#157a4c",
-  ink: "#f6f8fc", ink2: "#ffffff", ink3: "#eef2f8", line: "#d6deea",
-  text: "#28303f", textHi: "#0b1220", textDim: "#4f5a6c", textFaint: "#79839a",
-  codeBg: "#0e1424", codeBar: "#0a0f1c", glow: 0.35, isDark: false,
-  okBg: "#dcf4ea", warnBg: "#fbeed5",
+  cyan: "#2f6df0", cyanDeep: "#1c50c8",     // the single accent: a calm, focused blue
+  amber: "#b06a1c", amberDeep: "#8a5212",   // the "pixel/generative" foil — muted ochre
+  violet: "#6a5bd0",                          // energy/abstraction — used sparingly
+  green: "#2f9469", greenDeep: "#1f7a54",    // correct / healthy
+  ink: "#faf9f6", ink2: "#ffffff", ink3: "#f1efea", line: "#e6e3dc",   // warm paper neutrals
+  text: "#322f2a", textHi: "#1a1814", textDim: "#6c675e", textFaint: "#a09a8e",
+  codeBg: "#1b1a18", codeBar: "#232220", glow: 0, isDark: false,        // code stays warm-dark
+  okBg: "#e8f1ec", warnBg: "#f4ecdd",
+};
+export const DARK = {
+  cyan: "#6ea2ff", cyanDeep: "#9ec0ff",     // accent lifted for dark surfaces
+  amber: "#dca766", amberDeep: "#e7bd86",
+  violet: "#a99ff0",
+  green: "#69c79c", greenDeep: "#8ad9b5",
+  ink: "#15140f", ink2: "#1c1b16", ink3: "#26241e", line: "#322f28",    // warm near-black
+  text: "#e7e3d9", textHi: "#fbfaf5", textDim: "#a39d8f", textFaint: "#6f6a5e",
+  codeBg: "#100f0d", codeBar: "#1a1916", glow: 0, isDark: true,
+  okBg: "#19281f", warnBg: "#2b2517",
 };
 
-export const ThemeContext = React.createContext(DARK);
+export const ThemeContext = React.createContext(LIGHT);
 export const useTheme = () => React.useContext(ThemeContext);
