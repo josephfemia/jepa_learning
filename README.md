@@ -18,11 +18,34 @@ npm run preview  # preview the production build
 
 Requires Node 18+.
 
+## Deploy (GitHub Pages)
+
+A GitHub Actions workflow ([`.github/workflows/deploy.yml`](.github/workflows/deploy.yml)) builds and
+publishes to GitHub Pages on every push to `master`/`main`. No manual config is needed: hash routing
+(`#labs`) requires no SPA rewrites, and `vite.config.js` reads `base` from `VITE_BASE`, which the
+workflow derives automatically from the repository name (`/<repo>/` for a project page, `/` for a
+`<user>.github.io` page). The workflow also enables Pages itself.
+
+One-time setup — create a **public** repo (free Pages requires public), then:
+
+```bash
+git remote add origin https://github.com/<USER>/<REPO>.git
+git push -u origin master        # use `git branch -M main` first if you prefer main
+```
+
+When the **Actions → Deploy to GitHub Pages** run is green, the site is live at:
+
+- `https://<USER>.github.io/<REPO>/` — the course
+- `https://<USER>.github.io/<REPO>/#labs` — the from-scratch notebooks
+
+(If a run ever fails with a Pages 404, the repo's Actions may be restricted — enable Settings → Pages →
+Source: **GitHub Actions**, then re-run.)
+
 ## Stack
 
-- **Vite** + **React 18** (single component, no router)
+- **Vite** + **React 18**, a tiny hash router (`#labs` → the from-scratch notebooks page, else the course)
 - **Tailwind CSS** (core utilities + arbitrary values via JIT)
-- No other runtime dependencies. Fonts load from Google Fonts via an `@import` inside the component.
+- No runtime dependencies. One web font (**Fraunces**, the display serif) loads via `@import`; body/mono use the native system stacks.
 
 ## Project structure
 
