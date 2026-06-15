@@ -1,0 +1,15 @@
+# Virtual environment (recreate with: uv venv --python 3.12 .venv)
+.venv/
+
+# Downloaded / generated datasets
+data/
+
+# Jupyter / Python caches
+.ipynb_checkpoints/
+__pycache__/
+*.pyc
+
+# Dev scratch (the notebooks + README are the deliverable)
+_dev_*.py
+_build_notebooks.py
+*.log
