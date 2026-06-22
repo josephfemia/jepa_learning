@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { collapseMode, stepCloud, spread, offDiagonalSpread } from "./collapseSim.js";
+import { collapseMode, stepCloud, spread, offDiagonalSpread, lossProxy, probeProxy } from "./collapseSim.js";
 
 const makeCloud = () => {
   // deterministic spread grid in the unit square
@@ -40,5 +40,26 @@ describe("collapse dynamics", () => {
     const after = run(start.map((p) => ({ ...p })), "healthy", 200);
     expect(spread(after)).toBeGreaterThan(0.1);
     expect(offDiagonalSpread(after)).toBeGreaterThan(0.02);
+  });
+});
+
+describe("loss / probe proxies (the cruel-irony pair)", () => {
+  it("both proxies are higher for a spread cloud than a collapsed one", () => {
+    const healthy = makeCloud();
+    const collapsed = run(makeCloud(), "complete", 200);
+    expect(lossProxy(healthy)).toBeGreaterThan(lossProxy(collapsed));
+    expect(probeProxy(healthy)).toBeGreaterThan(probeProxy(collapsed));
+  });
+
+  it("complete collapse drives loss AND probe accuracy toward 0", () => {
+    const collapsed = run(makeCloud(), "complete", 200);
+    expect(lossProxy(collapsed)).toBeLessThan(0.05);
+    expect(probeProxy(collapsed)).toBeLessThan(0.05);
+  });
+
+  it("dimensional collapse also crashes probe accuracy (a line carries little)", () => {
+    const line = run(makeCloud(), "dimensional", 200);
+    const healthy = makeCloud();
+    expect(probeProxy(line)).toBeLessThan(probeProxy(healthy));
   });
 });

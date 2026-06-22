@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import Lab from "../widgets/Lab.jsx";
 import R from "../widgets/rllab.js";
-import { collapseMode, stepCloud, spread, offDiagonalSpread } from "../logic/collapseSim.js";
+import { collapseMode, stepCloud, spread, offDiagonalSpread, lossProxy, probeProxy } from "../logic/collapseSim.js";
 
 /* The collapse simulator — toolkit port. 64 embeddings drift in the dark latent
    stage; toggle the two defenses and watch complete / dimensional / healthy. */
@@ -27,6 +27,7 @@ export default function CollapseLab() {
     const homes = pts.map((p) => ({ x: p.hx, y: p.hy }));
     const refV = spread(homes) || 1, refC = offDiagonalSpread(homes) || 1;
     const meter = R.meters(stage, ["variance (per-dim spread)", "off-diagonal spread"]);
+    const irony = R.meters(stage, ["prediction loss (lower looks 'better')", "linear-probe accuracy (real knowledge)"]);
 
     let raf = 0;
     const tick = () => {
@@ -41,6 +42,11 @@ export default function CollapseLab() {
       ctx.shadowBlur = 0;
       meter.set(0, Math.round(R.clamp(spread(pts) / refV, 0, 1) * 100), R.C.orange);
       meter.set(1, Math.round(R.clamp(offDiagonalSpread(pts) / refC, 0, 1) * 100), R.C.violet);
+      // the cruel irony: training loss falls toward 0 as the cloud dies (default
+      // meter coloring — the irony is in the caption, not an alarm) while the
+      // linear-probe accuracy (real knowledge) crashes with it, flagged orange.
+      irony.set(0, Math.round(lossProxy(pts) * 100));
+      irony.set(1, Math.round(probeProxy(pts) * 100), R.C.orange);
       raf = requestAnimationFrame(tick);
     };
 
@@ -61,6 +67,6 @@ export default function CollapseLab() {
 
   return (
     <Lab id="collapse" title="The collapse simulator" setup={setup}
-      note="A JEPA grades itself on predicting its own embeddings — so the lazy solution is to make them all identical. Start healthy, switch the defenses off and watch the space die, then switch them back and watch it recover. Track the two meters: complete collapse crashes BOTH; dimensional collapse keeps variance up but sends off-diagonal spread to zero." />
+      note="A JEPA grades itself on predicting its own embeddings — so the lazy solution is to make them all identical. Start healthy, switch the defenses off and watch the space die, then switch them back and watch it recover. Track the two geometry meters: complete collapse crashes BOTH; dimensional collapse keeps variance up but sends off-diagonal spread to zero. Then watch the cruel irony in the bottom pair: as the space dies, the prediction loss drops toward zero — it looks like the model is winning — while real knowledge (probe accuracy) collapses with it. Low loss, zero learning." />
   );
 }

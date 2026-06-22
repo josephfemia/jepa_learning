@@ -13,10 +13,10 @@ export default function EmaLagLab() {
     const W = 600, H = 210, N = 130;
     const svg = R.SVG(stage, W, H);
     let tau = 0.96, frame = 0, t = 0;
-    let sVal = 0.5, tVal = 0.5;
+    let sVal = 0.5, tVal = 0.5, spread = 1;   // embedding spread: 1 = alive, 0 = collapsed
     const student = Array(N).fill(0.5), teacher = Array(N).fill(0.5);
 
-    const meter = R.meters(stage, ["target stability"]);
+    const meter = R.meters(stage, ["target stability", "embedding spread (alive?)"]);
     const readout = R.ce("div");
     readout.style.cssText = "font-family:var(--font-mono);font-size:12px;color:#C8CFDA;margin-top:10px;line-height:1.5;min-height:34px";
     stage.appendChild(readout);
@@ -31,6 +31,10 @@ export default function EmaLagLab() {
       tVal = tau * tVal + (1 - tau) * sVal;
       student.push(sVal); student.shift();
       teacher.push(tVal); teacher.shift();
+      // When τ is low the teacher snaps onto the student → lockstep → collusion →
+      // the embedding cloud's spread dies. High τ keeps the target un-gameable, so
+      // the only way to win is to predict better and the spread recovers.
+      spread = tau < 0.75 ? spread * 0.97 : R.clamp(spread + (1 - spread) * 0.04, 0, 1);
     };
 
     const path = (arr, color, wdt) => {
@@ -53,11 +57,12 @@ export default function EmaLagLab() {
       jit /= 14;
       const stability = Math.round(R.clamp(1 - jit / 0.05, 0, 1) * 100);
       meter.set(0, stability, R.C.orange);
+      meter.set(1, Math.round(R.clamp(spread, 0, 1) * 100), R.C.orange);
       readout.innerHTML = tau >= 0.92
-        ? `Targets are <b style="color:${R.C.violet}">smooth and slow</b> — the student can't game a moving average it can't predict. This is the stable regime (real JEPAs use τ ≈ 0.996).`
+        ? `Targets are <b style="color:${R.C.violet}">smooth and slow</b> — the student can't game a moving average it can't predict. This is the stable regime (real JEPAs use τ ≈ 0.996), and the embedding spread stays <b style="color:${R.C.green}">alive</b>.`
         : tau >= 0.75
         ? `The teacher is starting to <b>track</b> the student. Targets get jumpier — less stable to learn against.`
-        : `Low τ: the teacher snaps onto the student and they move in <b style="color:${R.C.orange}">lockstep</b>. Nothing keeps the target un-gameable — exactly the collusion that lets collapse happen.`;
+        : `Low τ: the teacher snaps onto the student and they move in <b style="color:${R.C.orange}">lockstep</b> — and watch the embedding spread <b style="color:${R.C.orange}">die</b>. That lockstep IS the collusion route to collapse.`;
     };
 
     let raf = 0;
@@ -72,6 +77,6 @@ export default function EmaLagLab() {
 
   return (
     <Lab id="emalag" title="Why the teacher lags the student" setup={setup}
-      note="The teacher's weights are an exponential moving average of the student's: teacher ← τ·teacher + (1−τ)·student. Slide τ toward 1 and the teacher becomes a smooth, slow shadow — stable targets the student can't trivially game. Slide it down and the teacher snaps onto the student: they move in lockstep, and that's the collusion route to collapse. The lag is the point." />
+      note="The teacher's weights are an exponential moving average of the student's: teacher ← τ·teacher + (1−τ)·student. Slide τ toward 1 and the teacher becomes a smooth, slow shadow — stable targets the student can't trivially game. Drop τ and the teacher snaps onto the student — they move in lockstep, and watch the embedding spread die: that lockstep IS the collusion route to collapse. The lag is the point." />
   );
 }
