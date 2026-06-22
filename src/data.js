@@ -9,12 +9,32 @@ export const SECTIONS = [
   { id: "build", label: "Architecture" },
   { id: "collapse", label: "Collapse" },
   { id: "depth", label: "Under the Hood" },
+  { id: "depth2", label: "Frontier & Eval" },
   { id: "compare", label: "Vs Others" },
   { id: "history", label: "History" },
   { id: "models", label: "The Models" },
   { id: "worldmodels", label: "World Models" },
   { id: "recap", label: "Recap" },
 ];
+
+/* Paginated-lecture nav (robotic_learning style): a welcome page, then the ten
+   lectures grouped into a sidebar. PAGES is the linear prev/next order. */
+export const START = { id: "start", label: "Start here" };
+
+export const NAV_GROUPS = [
+  { header: "Orientation", items: ["start"] },
+  { header: "The core idea", items: ["idea", "why", "build", "collapse"] },
+  { header: "Under the hood", items: ["depth", "depth2"] },
+  { header: "In context", items: ["compare", "history"] },
+  { header: "The frontier", items: ["models", "worldmodels"] },
+  { header: "Lock it in", items: ["recap"] },
+];
+
+// linear order for the prev/next pager and "jump to next unfinished"
+export const PAGES = ["start", ...SECTIONS.map((s) => s.id)];
+
+// id → short sidebar/topbar label (start + the ten lectures)
+export const PAGE_LABEL = { start: START.label, ...Object.fromEntries(SECTIONS.map((s) => [s.id, s.label])) };
 
 // which completion key (in the `done` map) marks each section "done" — drives the
 // nav checkmarks. Sections gain a check once their self-test (predict-first guess,
@@ -52,10 +72,10 @@ export const MODELS = [
     stats: [["3D", "spacetime masking"], ["frozen", "backbone probed"], ["0 pixels", "pure latent loss"]] },
   { id: "vjepa2", name: "V-JEPA 2", year: "Jun 2025", domain: "Video world model + robotics", pill: "world model",
     blurb: "Two-stage. (1) Action-free pretraining of a billion-parameter ViT-g encoder on VideoMix22M (1M+ hours of internet video), using mask-denoising and 3D rotary position embeddings to predict masked future representations. (2) Action-conditioned post-training (V-JEPA 2-AC): freeze the encoder, train a 24-layer predictor that takes the current latent state + a 7-DoF robot action and predicts the next latent — from <62h of DROID robot video.",
-    why: "Given a goal image, the robot plans by Model-Predictive Control: imagine the latent consequences of candidate action sequences, score each by the L1 distance to the goal embedding, execute the first action, then re-plan. The optimizer is the Cross-Entropy Method. Zero-shot pick-and-place on Franka arms in two unseen labs — no task rewards, ~16 sec per action vs ~4 min for the diffusion-based Cosmos baseline (≈15× faster).",
+    why: "Given a goal image, the robot plans by Model-Predictive Control: imagine the latent consequences of candidate action sequences, score each by the L1 distance to the goal embedding, execute the first action, then re-plan. The optimizer is the Cross-Entropy Method. Zero-shot pick-and-place on Franka arms in two unseen labs — no task rewards, ~16 sec per action vs ~4 min for the diffusion-based Cosmos baseline (≈15× faster — the gap is latent-embedding scoring vs full pixel rendering, same CEM search on both sides).",
     stats: [["1M+ h", "internet video"], ["62 h", "robot data"], ["0-shot", "new labs"], ["~15×", "faster vs Cosmos"]] },
   { id: "lejepa", name: "LeJEPA", year: "Nov 2025", domain: "Theory + method", pill: "the principled rewrite",
-    blurb: "Removes heuristics instead of adding them. Proves an isotropic Gaussian is the unique embedding distribution minimizing worst-case downstream risk; enforces it with SIGReg (checks Gaussianity along random 1-D projections, linear cost); combines with latent prediction into a one-hyperparameter objective.",
+    blurb: "Removes heuristics instead of adding them. Proves an isotropic Gaussian minimizes worst-case downstream risk (for linear probes); enforces it with SIGReg (checks Gaussianity along random 1-D projections, linear cost); combines with latent prediction into a one-hyperparameter objective.",
     why: "No EMA, no stop-gradient, no teacher–student asymmetry — yet stable, collapse-free training across architectures. Turns JEPA from an empirical recipe into a method with provable guarantees, right as the field pivots to world models.",
     stats: [["N(0,I)", "provably optimal"], ["SIGReg", "linear cost"], ["1", "hyperparameter"]] },
   { id: "lewm", name: "LeWorldModel", year: "Mar 2026", domain: "Latent world model from pixels", pill: "the synthesis",

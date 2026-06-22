@@ -1,8 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { DARK, LIGHT, ThemeContext, useTheme } from "./theme.js";
-import { SECTIONS, SECTION_CHECK, TIMELINE, MODELS, GLOSSARY, WORLD_MODELS } from "./data.js";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { LIGHT, ThemeContext, useTheme } from "./theme.js";
+import { SECTIONS, SECTION_CHECK, TIMELINE, MODELS, GLOSSARY, WORLD_MODELS,
+  NAV_GROUPS, PAGES, PAGE_LABEL } from "./data.js";
 import { cx, clamp, lerp, scoreQuiz, planCEM } from "./logic.js";
 import NotebooksPage, { pyHighlight } from "./Notebooks.jsx";
+import CollapseLabT from "./labs/CollapseLab.jsx";
+import EnergyLandscapeLab from "./labs/EnergyLandscapeLab.jsx";
+import VICRegIsolatorLab from "./labs/VICRegIsolatorLab.jsx";
+import LatentPlanningLabT from "./labs/LatentPlanningLab.jsx";
+import PixelVsLatentLabT from "./labs/PixelVsLatentLab.jsx";
+import LatentGeometryLab from "./labs/LatentGeometryLab.jsx";
+import MaskingDifficultyLab from "./labs/MaskingDifficultyLab.jsx";
 
 /* ============================================================================
    JEPA — An Interactive Course
@@ -23,86 +31,15 @@ import NotebooksPage, { pyHighlight } from "./Notebooks.jsx";
    data lives in data.js; pure helpers and logic live in logic.js. All imported
    at the top of this file. */
 
-/* theme toggle icons */
-function SunIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-    </svg>
-  );
-}
-function MoonIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
-    </svg>
-  );
-}
-function MenuIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M3 6h18M3 12h18M3 18h18" />
-    </svg>
-  );
-}
-function CloseIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-      <path d="M6 6l12 12M18 6L6 18" />
-    </svg>
-  );
-}
 
-/* Hook: has this element scrolled into view (for reveal animations) */
-function useInView(opts = { threshold: 0.15 }) {
-  const ref = useRef(null);
-  const [seen, setSeen] = useState(false);
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || seen) return;
-    const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting) {
-        setSeen(true);
-        io.disconnect();
-      }
-    }, opts);
-    io.observe(el);
-    return () => io.disconnect();
-  }, [seen]);
-  return [ref, seen];
-}
 
-/* Reveal wrapper */
-function Reveal({ children, className, delay = 0 }) {
-  const [ref, seen] = useInView();
-  return (
-    <div
-      ref={ref}
-      className={cx("transition-all duration-700 ease-out", className)}
-      style={{
-        opacity: seen ? 1 : 0,
-        transform: seen ? "none" : "translateY(24px)",
-        transitionDelay: `${delay}ms`,
-      }}
-    >
-      {children}
-    </div>
-  );
+/* Reveal wrapper — in the paginated layout a whole lecture appears at once
+   (the .lecture fade-in handles entry), so this just renders its children. */
+function Reveal({ children, className }) {
+  return <div className={className}>{children}</div>;
 }
 
 /* ----------------------------- shared UI bits ---------------------------- */
-function Eyebrow({ num, children }) {
-  const C = useTheme();
-  return (
-    <div className="font-mono text-xs tracking-[0.18em] uppercase mb-4 flex items-center gap-3"
-         style={{ color: C.cyan }}>
-      {num && <span style={{ color: C.textFaint }}>{num}</span>}
-      <span className="h-px w-8" style={{ background: C.cyan }} />
-      {children}
-    </div>
-  );
-}
-
 function Aside({ tag, color, children }) {
   const C = useTheme(); color = color || C.cyan;
   return (
@@ -265,77 +202,6 @@ function GuessGate({ question, options, correct, explanation, onResolved,
 }
 
 /* ========================================================================== */
-/*  INTERACTIVE 1 — The cost of predicting pixels (slider reveals the idea)    */
-/* ========================================================================== */
-function PixelVsLatentLab() {
-  const C = useTheme();
-  const [detail, setDetail] = useState(80); // how much pixel detail the model is forced to model
-  // "wasted effort" rises steeply with detail; "useful signal" saturates early
-  const useful = Math.round(100 * (1 - Math.exp(-detail / 22)));
-  const wasted = Math.round(detail * 0.9);
-  const total = useful + wasted;
-  const usefulFrac = total ? useful / total : 0;
-
-  return (
-    <div className="my-8 rounded-2xl border overflow-hidden" style={{ borderColor: C.line, background: C.ink2 }}>
-      <div className="p-5 sm:p-6">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-          <h4 className="font-semibold text-lg" style={{ color: C.textHi }}>The reconstruction tax</h4>
-          <Pill color={C.amber}>interactive</Pill>
-        </div>
-        <p className="text-sm mb-5" style={{ color: C.textDim }}>
-          Drag to set how much raw pixel detail a generative model is forced to reproduce. Watch where its
-          effort actually goes.
-        </p>
-
-        {/* the two reservoirs */}
-        <div className="grid grid-cols-2 gap-4 mb-5">
-          {[
-            { label: "Useful semantic signal", val: useful, color: C.cyan, note: "what helps reasoning" },
-            { label: "Effort on unpredictable detail", val: wasted, color: C.amber, note: "texture, noise, lighting" },
-          ].map((r) => (
-            <div key={r.label}>
-              <div className="flex items-end justify-between mb-1">
-                <span className="text-xs" style={{ color: C.textDim }}>{r.label}</span>
-                <span className="font-mono text-sm" style={{ color: r.color }}>{r.val}</span>
-              </div>
-              <div className="h-3 rounded-full overflow-hidden" style={{ background: C.ink3 }}>
-                <div className="h-full rounded-full transition-all duration-300"
-                     style={{ width: `${clamp(r.val, 0, 100)}%`, background: r.color }} />
-              </div>
-              <div className="text-[11px] mt-1" style={{ color: C.textFaint }}>{r.note}</div>
-            </div>
-          ))}
-        </div>
-
-        <input
-          type="range" min="5" max="100" value={detail}
-          onChange={(e) => setDetail(+e.target.value)}
-          className="w-full accent-amber-400"
-          style={{ accentColor: C.amber }}
-          aria-label="Amount of pixel detail the model must reproduce"
-        />
-        <div className="flex justify-between font-mono text-[11px] mt-1" style={{ color: C.textFaint }}>
-          <span>abstract (JEPA-like)</span>
-          <span>pixel-perfect (generative)</span>
-        </div>
-
-        <div className="mt-5 rounded-xl p-4 text-[14px] leading-relaxed"
-             style={{ background: C.ink3, color: C.text }}>
-          {usefulFrac > 0.6 ? (
-            <span>Notice: when the model stays abstract, almost all its capacity becomes <span style={{color:C.cyan}}>useful signal</span>. This is the regime JEPA lives in — predict the <em>meaning</em>, skip the noise.</span>
-          ) : usefulFrac > 0.35 ? (
-            <span>As you demand more detail, effort tilts toward things that don't help downstream tasks. The useful signal has already saturated.</span>
-          ) : (
-            <span>At pixel-perfect reconstruction, the model pours most of its budget into detail it can't even reliably predict — <span style={{color:C.amber}}>the reconstruction tax</span>. The world is not fully predictable, so this effort is partly wasted.</span>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ========================================================================== */
 /*  INTERACTIVE 2 — Masking + prediction in latent space (the architecture)    */
 /* ========================================================================== */
 function MaskingLab() {
@@ -490,302 +356,6 @@ function Connector({ on }) {
   return (
     <div className="h-4 ml-[27px] w-px my-0.5 transition-all duration-500"
          style={{ background: on ? C.cyan : C.line }} />
-  );
-}
-
-/* ========================================================================== */
-/*  Contrastive vs regularized — the two ways to shape an energy landscape.     */
-/* ========================================================================== */
-function ContrastiveVsRegularized() {
-  const C = useTheme();
-  const [mode, setMode] = useState("reg");
-  const isReg = mode === "reg";
-  const col = isReg ? C.cyan : C.violet;
-  return (
-    <div className="my-6">
-      <div className="flex gap-2 mb-4">
-        <button onClick={() => setMode("con")}
-          className="flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
-          style={{ background: !isReg ? `${C.violet}1f` : C.ink2, border: `1px solid ${!isReg ? C.violet : C.line}`, color: !isReg ? C.textHi : C.textDim }}>
-          Contrastive (push up negatives)
-        </button>
-        <button onClick={() => setMode("reg")}
-          className="flex-1 rounded-xl px-3 py-2.5 text-sm font-medium transition-all"
-          style={{ background: isReg ? `${C.cyan}1f` : C.ink2, border: `1px solid ${isReg ? C.cyan : C.line}`, color: isReg ? C.textHi : C.textDim }}>
-          Regularized (constrain statistics)
-        </button>
-      </div>
-      <div className="rounded-2xl border overflow-hidden" style={{ borderColor: col + "66", background: C.ink2 }}>
-        <svg viewBox="0 0 600 200" className="w-full" style={{ display: "block" }}>
-          {(() => {
-            const pts = [];
-            for (let x = 0; x <= 600; x += 6) {
-              const u = x / 600;
-              const valley = Math.exp(-Math.pow((u - 0.38) / 0.07, 2));
-              let e;
-              if (isReg) {
-                e = Math.min(1, 0.15 + (1 - valley) * 0.8);
-              } else {
-                e = Math.max(0.1, 1 - valley * 0.9);
-              }
-              // y grows downward in SVG, so low energy must map to a LARGER y
-              // (a valley at the bottom) and high energy to the top (a peak).
-              pts.push([x, 160 - e * 130]);
-            }
-            const d = "M " + pts.map((p) => `${p[0]},${p[1]}`).join(" L ");
-            // sit the data marker on the valley floor (energy at u = 0.38)
-            const dataE = isReg ? 0.15 : 0.1;
-            const dataY = 160 - dataE * 130;
-            return (
-              <>
-                <path d={d} fill="none" stroke={col} strokeWidth="2.5" />
-                <circle cx={0.38 * 600} cy={dataY} r="6" fill={C.green} />
-                <text x={0.38 * 600} y={dataY + 22} fill={C.green} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">data (low E)</text>
-                {!isReg ? (
-                  <>
-                    {/* a single up-arrow: a negative point has its energy pushed up */}
-                    <line x1={0.72 * 600} y1={86} x2={0.72 * 600} y2={56} stroke={C.amber} strokeWidth="2.5" strokeLinecap="round" />
-                    <path d={`M ${0.72 * 600} 48 L ${0.72 * 600 - 6} 60 L ${0.72 * 600 + 6} 60 Z`} fill={C.amber} />
-                    <text x={0.72 * 600} y={102} fill={C.amber} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">negative</text>
-                  </>
-                ) : (
-                  <text x={510} y={56} fill={C.cyan} fontSize="11" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">all else: high</text>
-                )}
-              </>
-            );
-          })()}
-        </svg>
-        <div className="p-5" style={{ borderTop: `1px solid ${C.line}` }}>
-          {isReg ? (
-            <p className="text-[14.5px] leading-relaxed" style={{ color: C.text }}>
-              <B>Regularized methods.</B> Don't sample negatives at all. Instead, constrain the embedding <em>statistics</em> so the
-              encoder <Hi>can't collapse</Hi> every input into one tiny low-energy region. They differ in what they constrain:
-              <B> VICReg</B> keeps each dimension's variance above a floor and decorrelates dimensions; <B>SIGReg</B> (LeJEPA) goes further
-              and matches the <em>whole</em> embedding distribution to an isotropic Gaussian. Cost is linear; no negatives needed.
-              <span style={{color:C.cyan}}> This is JEPA's lineage.</span>
-            </p>
-          ) : (
-            <p className="text-[14.5px] leading-relaxed" style={{ color: C.text }}>
-              <B>Contrastive methods (SimCLR, MoCo, InfoNCE).</B> Explicitly push energy <Hi>up</Hi> at sampled negative points so
-              the valley stays narrow. Effective, but you need many negatives, big batches, and good augmentations —
-              and in high dimensions the negatives can't cover the space (the <span style={{color:C.amber}}>curse of dimensionality</span>).
-            </p>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*  Masking strategy viz — I-JEPA multi-block, with real numbers.               */
-/* ========================================================================== */
-function MaskingStrategyViz() {
-  const C = useTheme();
-  const [seed, setSeed] = useState(0);
-  const layout = useMemo(() => {
-    const rnd = (a, b) => a + Math.random() * (b - a);
-    const targets = Array.from({ length: 4 }, () => {
-      const scale = rnd(0.15, 0.2);
-      const ar = rnd(0.75, 1.5);
-      const w = Math.sqrt(scale * ar), h = Math.sqrt(scale / ar);
-      return { x: rnd(0.02, 0.96 - w), y: rnd(0.06, 0.9 - h), w, h };
-    });
-    return { targets };
-  }, [seed]);
-  const G = 8;
-  return (
-    <div className="my-6 rounded-2xl border overflow-hidden" style={{ borderColor: C.line, background: C.ink2 }}>
-      <div className="p-5 sm:p-6">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-4">
-          <h4 className="font-semibold text-[15px]" style={{ color: C.textHi }}>I-JEPA multi-block masking</h4>
-          <Pill color={C.cyan}>interactive</Pill>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-6 items-center">
-          <div className="shrink-0">
-            <svg viewBox="0 0 200 200" width="200" height="200" className="rounded-lg" style={{ background: C.ink3 }}>
-              {Array.from({ length: G * G }).map((_, i) => (
-                <rect key={i} x={(i % G) * 25} y={Math.floor(i / G) * 25} width="25" height="25"
-                  fill="none" stroke={C.line} strokeWidth="0.5" />
-              ))}
-              <rect x="10" y="10" width="180" height="180" fill={C.cyan} opacity="0.12" stroke={C.cyan} strokeWidth="1.5" rx="3" />
-              <text x="16" y="26" fill={C.cyan} fontSize="9" fontFamily="ui-monospace, Menlo, monospace">context 85–100%</text>
-              {layout.targets.map((t, i) => (
-                <rect key={i} x={t.x * 200} y={t.y * 200} width={t.w * 200} height={t.h * 200}
-                  fill={C.violet} opacity="0.35" stroke={C.violet} strokeWidth="1.5" rx="2" />
-              ))}
-              <text x="100" y="196" fill={C.violet} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">4 targets · 15–20% each</text>
-            </svg>
-            <button onClick={() => setSeed((s) => s + 1)}
-              className="mt-3 w-full rounded-lg px-3 py-2 text-sm font-medium transition-all"
-              style={{ background: C.ink3, border: `1px solid ${C.line}`, color: C.cyan }}>
-              ↻ Resample masks
-            </button>
-          </div>
-          <div className="flex-1 text-[14px] leading-relaxed" style={{ color: C.text }}>
-            <p className="mb-3"><span className="font-mono text-[12px]" style={{color:C.cyan}}>context block</span> — scale (0.85, 1.0), unit aspect ratio. Big and spatially distributed, so there's real information to reason from.</p>
-            <p className="mb-3"><span className="font-mono text-[12px]" style={{color:C.violet}}>4 target blocks</span> — scale (0.15, 0.2), aspect ratio (0.75, 1.5). Large enough to be <Hi>semantic</Hi> (an object part), not a single texture patch.</p>
-            <p style={{ color: C.textDim }}>Both encoders are ViTs operating on fixed-size image patches (the headline ViT-Huge/14 uses 14×14); the predictor is a <em>narrower</em> ViT. In the paper, that ViT-Huge/14 trains on ImageNet on 16 A100s in &lt;72h.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ========================================================================== */
-/*  INTERACTIVE 3 — Collapse simulator (toggle defenses, watch the space)      */
-/* ========================================================================== */
-function CollapseLab() {
-  const C = useTheme();
-  const [ema, setEma] = useState(false);
-  const [vic, setVic] = useState(true);   // default to the healthy/defended view, not a dead dot
-  const raf = useRef(0);
-  const canvasRef = useRef(null);
-
-  // points have a fixed spread "home" layout; live positions x,y animate from there
-  const pointsRef = useRef(
-    Array.from({ length: 60 }, () => {
-      const hx = 0.08 + Math.random() * 0.84, hy = 0.08 + Math.random() * 0.84;
-      return { hx, hy, x: hx, y: hy };
-    })
-  );
-
-  // whenever the defenses change, re-seed from the spread home layout so the
-  // animation always starts from a healthy cloud and we can SEE it collapse/recover
-  useEffect(() => {
-    pointsRef.current.forEach((p) => {
-      p.x = p.hx + (Math.random() - 0.5) * 0.04;
-      p.y = p.hy + (Math.random() - 0.5) * 0.04;
-    });
-  }, [ema, vic]);
-
-  useEffect(() => {
-    const cv = canvasRef.current;
-    if (!cv) return;
-    const ctx = cv.getContext("2d");
-    const DPR = Math.min(2, window.devicePixelRatio || 1);
-    const resize = () => {
-      cv.width = cv.offsetWidth * DPR;
-      cv.height = cv.offsetHeight * DPR;
-    };
-    resize();
-    window.addEventListener("resize", resize);
-
-    const tick = () => {
-      const W = cv.width, H = cv.height;
-      ctx.clearRect(0, 0, W, H);
-      const pts = pointsRef.current;
-
-      // collapse strength depends on defenses
-      // none -> strong pull to a single point (complete collapse)
-      // ema only -> pull to a line (dimensional collapse), milder
-      // vic (variance+cov) -> hold the spread, decorrelate
-      const cx = 0.5, cy = 0.5;
-      pts.forEach((p) => {
-        let tx = p.x, ty = p.y;
-        if (!ema && !vic) {
-          // everything drifts to one point
-          tx = lerp(p.x, cx, 0.05);
-          ty = lerp(p.y, cy, 0.05);
-        } else if (ema && !vic) {
-          // collapse onto the diagonal line y=x (a low-dimensional subspace)
-          const m = (p.x + p.y) / 2;
-          tx = lerp(p.x, m, 0.06);
-          ty = lerp(p.y, m, 0.06);
-        } else {
-          // VICReg: variance keeps the cloud spread, covariance decorrelates ->
-          // gently hold each point near its (spread) home position
-          tx = lerp(p.x, p.hx, 0.06);
-          ty = lerp(p.y, p.hy, 0.06);
-        }
-        p.x = tx; p.y = ty;
-      });
-
-      // draw
-      const healthy = vic; // glow only when fully defended
-      const col = (!ema && !vic) ? C.amber : (ema && !vic) ? C.violet : C.green;
-      pts.forEach((p) => {
-        const px = p.x * W, py = p.y * H;
-        ctx.beginPath();
-        ctx.arc(px, py, 3.2 * DPR, 0, 7);
-        ctx.fillStyle = col;
-        ctx.shadowColor = col;
-        ctx.shadowBlur = healthy ? 8 * DPR : 4 * DPR;
-        ctx.fill();
-      });
-      ctx.shadowBlur = 0;
-      raf.current = requestAnimationFrame(tick);
-    };
-    tick();
-    return () => { cancelAnimationFrame(raf.current); window.removeEventListener("resize", resize); };
-  }, [ema, vic]);
-
-  const status = (!ema && !vic)
-    ? { t: "Complete collapse", c: C.amber, d: "Every embedding is drifting to one point. Prediction error → 0, but the representation has learned nothing." }
-    : (ema && !vic)
-    ? { t: "Dimensional collapse", c: C.violet, d: "EMA + stop-gradient breaks the worst symmetry, but the points still collapse onto a line — a low-dimensional subspace. A real, documented failure mode." }
-    : { t: "Healthy embedding space", c: C.green, d: "Variance regularization keeps each dimension spread; covariance regularization decorrelates them. The space stays full and informative." };
-
-  return (
-    <div className="my-8 rounded-2xl border overflow-hidden" style={{ borderColor: C.line, background: C.ink2 }}>
-      <div className="p-5 sm:p-6">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-          <h4 className="font-semibold text-lg" style={{ color: C.textHi }}>The collapse simulator</h4>
-          <Pill color={C.violet}>interactive</Pill>
-        </div>
-        <p className="text-sm mb-5" style={{ color: C.textDim }}>
-          A JEPA grades itself on predicting its own embeddings — so the lazy solution is to make them all identical.
-          You start with a <span style={{color:C.green}}>healthy</span> space. Now switch the defenses <em>off</em> and watch it die — then switch them back and watch it recover.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-5">
-          <canvas ref={canvasRef}
-            role="img" aria-label={`Animated latent-space scatter of 60 embeddings. Current state: ${status.t} — ${status.d}`}
-            className="rounded-xl w-full sm:w-[300px] h-[240px] shrink-0"
-            style={{ background: C.ink, border: `1px solid ${C.line}` }} />
-
-          <div className="flex-1">
-            <Toggle label="EMA + stop-gradient" sub="architectural asymmetry (I-JEPA / V-JEPA default)"
-              on={ema} onChange={() => setEma((v) => !v)} color={C.violet} />
-            <Toggle label="Variance–covariance regularization" sub="VICReg-style — spread + decorrelate"
-              on={vic} onChange={() => setVic((v) => !v)} color={C.green} />
-
-            <div className="mt-4 rounded-xl p-4 transition-all duration-300"
-                 style={{ background: C.ink3, borderLeft: `3px solid ${status.c}` }}>
-              <div className="font-mono text-[11px] uppercase tracking-wider mb-1" style={{ color: status.c }}>
-                {status.t}
-              </div>
-              <div className="text-[14px] leading-relaxed" style={{ color: C.text }}>{status.d}</div>
-            </div>
-          </div>
-        </div>
-
-        <Aside tag="The 2025 punchline" color={C.cyan}>
-          LeJEPA later <em style={{color:C.cyan, fontStyle:"normal"}}>proved</em> that the ideal embedding distribution is an isotropic
-          Gaussian and enforced it with one regularizer (SIGReg) — removing the need for EMA, stop-gradient,
-          and teacher–student tricks entirely. The defenses you just toggled became a single principled term.
-        </Aside>
-      </div>
-    </div>
-  );
-}
-function Toggle({ label, sub, on, onChange, color }) {
-  const C = useTheme();
-  return (
-    <button onClick={onChange}
-      className="w-full flex items-center gap-3 rounded-xl px-4 py-3 mb-2 text-left transition-all"
-      style={{ background: on ? `${color}18` : C.ink3, border: `1px solid ${on ? color : C.line}` }}>
-      <div className="w-10 h-6 rounded-full p-0.5 shrink-0 transition-all"
-           style={{ background: on ? color : C.line }}>
-        <div className="w-5 h-5 rounded-full bg-white transition-all"
-             style={{ transform: on ? "translateX(16px)" : "none" }} />
-      </div>
-      <div>
-        <div className="text-sm font-medium" style={{ color: on ? C.textHi : C.text }}>{label}</div>
-        <div className="text-[11px]" style={{ color: C.textFaint }}>{sub}</div>
-      </div>
-    </button>
   );
 }
 
@@ -961,7 +531,7 @@ function ModelExplorer() {
           <div className="flex gap-5 flex-wrap pt-4 mt-2" style={{ borderTop: `1px solid ${C.line}` }}>
             {m.stats.map(([v, l], i) => (
               <div key={i} className="min-w-[110px]">
-                <div className="font-bold text-2xl leading-none" style={{ color: C.cyan, fontFamily: "Fraunces, Georgia, serif" }}>{v}</div>
+                <div className="font-bold text-2xl leading-none" style={{ color: C.cyan, fontFamily: "var(--font-display)" }}>{v}</div>
                 <div className="text-[12px] font-mono mt-1.5" style={{ color: C.textFaint }}>{l}</div>
               </div>
             ))}
@@ -1211,8 +781,8 @@ function ArchitectureDiagram() {
 
         <line x1="96" y1="103" x2="150" y2="103" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
         <rect x="150" y="78" width="104" height="50" rx="8" fill={C.ink3} stroke={C.cyan} />
-        <text x="202" y="98" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Context</text>
-        <text x="202" y="113" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Encoder</text>
+        <text x="202" y="98" fill={C.textHi} fontSize="12" fontFamily="var(--font-display)" textAnchor="middle">Context</text>
+        <text x="202" y="113" fill={C.textHi} fontSize="12" fontFamily="var(--font-display)" textAnchor="middle">Encoder</text>
         <text x="202" y="142" fill={sub} fontSize="9.5" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">trained · ViT</text>
 
         <line x1="254" y1="103" x2="300" y2="103" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
@@ -1221,7 +791,7 @@ function ArchitectureDiagram() {
         {/* predictor */}
         <line x1="336" y1="103" x2="386" y2="103" stroke={C.cyan} strokeWidth="2" markerEnd="url(#arrowC)" />
         <rect x="386" y="78" width="104" height="50" rx="8" fill={C.ink3} stroke={C.cyan} strokeWidth="1.6" />
-        <text x="438" y="98" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Predictor</text>
+        <text x="438" y="98" fill={C.textHi} fontSize="12" fontFamily="var(--font-display)" textAnchor="middle">Predictor</text>
         <text x="438" y="113" fill={txt} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">+ target pos / z</text>
         <text x="438" y="142" fill={sub} fontSize="9.5" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">narrow ViT</text>
 
@@ -1235,8 +805,8 @@ function ArchitectureDiagram() {
 
         <line x1="96" y1="281" x2="150" y2="281" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
         <rect x="150" y="256" width="104" height="50" rx="8" fill={C.ink3} stroke={C.violet} />
-        <text x="202" y="276" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Target</text>
-        <text x="202" y="291" fill={C.textHi} fontSize="12" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">Encoder</text>
+        <text x="202" y="276" fill={C.textHi} fontSize="12" fontFamily="var(--font-display)" textAnchor="middle">Target</text>
+        <text x="202" y="291" fill={C.textHi} fontSize="12" fontFamily="var(--font-display)" textAnchor="middle">Encoder</text>
         <text x="202" y="320" fill={sub} fontSize="9.5" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">EMA · stop-grad</text>
 
         <line x1="254" y1="281" x2="528" y2="281" stroke={C.textFaint} strokeWidth="1.5" markerEnd="url(#arrowN)" />
@@ -1249,7 +819,7 @@ function ArchitectureDiagram() {
         {/* loss between ŝ_y and s_y */}
         <line x1="556" y1="123" x2="556" y2="261" stroke={C.amber} strokeWidth="1.5" strokeDasharray="3 3" />
         <rect x="600" y="168" width="96" height="48" rx="8" fill={C.ink3} stroke={C.amber} />
-        <text x="648" y="188" fill={C.amber} fontSize="11" fontFamily="Fraunces, Georgia, serif" textAnchor="middle">loss</text>
+        <text x="648" y="188" fill={C.amber} fontSize="11" fontFamily="var(--font-display)" textAnchor="middle">loss</text>
         <text x="648" y="204" fill={txt} fontSize="9" fontFamily="ui-monospace, Menlo, monospace" textAnchor="middle">‖ŝ_y − s_y‖</text>
         <line x1="576" y1="103" x2="600" y2="180" stroke={C.amber} strokeWidth="1.3" strokeDasharray="3 3" />
         <line x1="576" y1="281" x2="600" y2="206" stroke={C.amber} strokeWidth="1.3" strokeDasharray="3 3" />
@@ -1260,182 +830,6 @@ function ArchitectureDiagram() {
         of the context encoder. The loss compares predicted vs. actual embeddings — <span style={{ color: C.amber }}>in latent space</span>, never pixels.
       </figcaption>
     </figure>
-  );
-}
-
-/* ========================================================================== */
-/*  INTERACTIVE 7 — Latent planning lab (V-JEPA 2 style MPC + CEM)              */
-/*  The user places a goal; the "robot" plans by sampling action sequences in   */
-/*  a 2D stand-in for latent space, scoring each rollout by L1 distance to the  */
-/*  goal embedding, keeping the elite samples (Cross-Entropy Method), executing */
-/*  one step, then re-planning. This is exactly V-JEPA 2-AC's control loop,     */
-/*  shrunk to 2D so you can watch it think.                                     */
-/* ========================================================================== */
-function LatentPlanningLab() {
-  const C = useTheme();
-  const canvasRef = useRef(null);
-  const [goal, setGoal] = useState({ x: 0.78, y: 0.28 });
-  const [state, setState] = useState({ x: 0.16, y: 0.78 });
-  const [running, setRunning] = useState(false);
-  const [step, setStep] = useState(0);
-  const [samples, setSamples] = useState([]); // current CEM candidate rollouts
-  const [elites, setElites] = useState([]);
-  const [reached, setReached] = useState(false);
-  const stateRef = useRef(state);
-  stateRef.current = state;
-  const loopRef = useRef(0);
-
-  const HORIZON = 4;      // actions per plan
-  const N = 60;           // candidate sequences per CEM iteration
-  const ELITE = 10;       // elites kept
-
-  // one CEM plan from current state -> best first action + viz data (see logic.js)
-  const planOnce = useCallback(
-    (cur, g) => planCEM(cur, g, { horizon: HORIZON, samples: N, elite: ELITE, iters: 2 }),
-    []);
-
-  // draw
-  useEffect(() => {
-    const cv = canvasRef.current; if (!cv) return;
-    const ctx = cv.getContext("2d");
-    const DPR = Math.min(2, window.devicePixelRatio || 1);
-    cv.width = cv.offsetWidth * DPR; cv.height = cv.offsetHeight * DPR;
-    const W = cv.width, H = cv.height;
-    const P = (pt) => [pt.x * W, pt.y * H];
-
-    ctx.clearRect(0, 0, W, H);
-    // subtle grid = "latent manifold"
-    ctx.strokeStyle = C.isDark ? "rgba(80,98,140,.13)" : "rgba(120,132,160,.16)";
-    ctx.lineWidth = DPR;
-    for (let i = 1; i < 8; i++) {
-      ctx.beginPath(); ctx.moveTo((i / 8) * W, 0); ctx.lineTo((i / 8) * W, H); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, (i / 8) * H); ctx.lineTo(W, (i / 8) * H); ctx.stroke();
-    }
-    // candidate rollouts (dim)
-    samples.forEach((c) => {
-      ctx.beginPath();
-      const [sx, sy] = P(stateRef.current); ctx.moveTo(sx, sy);
-      c.seq.forEach((pt) => { const [x, y] = P(pt); ctx.lineTo(x, y); });
-      ctx.strokeStyle = `${C.violet}${C.isDark ? "1f" : "29"}`;
-      ctx.lineWidth = DPR; ctx.stroke();
-    });
-    // elite rollouts (accent blue)
-    elites.forEach((c) => {
-      ctx.beginPath();
-      const [sx, sy] = P(stateRef.current); ctx.moveTo(sx, sy);
-      c.seq.forEach((pt) => { const [x, y] = P(pt); ctx.lineTo(x, y); });
-      ctx.strokeStyle = `${C.cyan}${C.isDark ? "cc" : "e6"}`;
-      ctx.lineWidth = 1.6 * DPR; ctx.stroke();
-    });
-    // goal (amber ring + crosshair) — "goal image embedding"
-    const [gx, gy] = P(goal);
-    ctx.strokeStyle = C.amber; ctx.lineWidth = 2 * DPR;
-    ctx.beginPath(); ctx.arc(gx, gy, 13 * DPR, 0, 7); ctx.stroke();
-    ctx.beginPath(); ctx.arc(gx, gy, 4 * DPR, 0, 7); ctx.fillStyle = C.amber; ctx.fill();
-    // current state (cyan dot, glowing)
-    const [cxp, cyp] = P(state);
-    ctx.beginPath(); ctx.arc(cxp, cyp, 7 * DPR, 0, 7);
-    ctx.fillStyle = C.cyan; ctx.shadowColor = C.cyan; ctx.shadowBlur = 14 * DPR; ctx.fill();
-    ctx.shadowBlur = 0;
-  }, [samples, elites, goal, state, C.isDark]);
-
-  // the receding-horizon loop: plan, execute one step, repeat
-  useEffect(() => {
-    if (!running) return;
-    let alive = true;
-    const tick = () => {
-      if (!alive) return;
-      const cur = stateRef.current;
-      const dist = Math.abs(cur.x - goal.x) + Math.abs(cur.y - goal.y);
-      if (dist < 0.06 || step > 40) { setReached(true); setRunning(false); setSamples([]); setElites([]); return; }
-      const { cand, elites: el, bestSeq } = planOnce(cur, goal);
-      setSamples(cand); setElites(el);
-      // execute ONLY the first action of the best plan (receding horizon)
-      loopRef.current = setTimeout(() => {
-        if (!alive) return;
-        if (bestSeq && bestSeq[0]) setState(bestSeq[0]);
-        setStep((s) => s + 1);
-      }, 420);
-    };
-    tick();
-    return () => { alive = false; clearTimeout(loopRef.current); };
-  }, [running, step, goal, planOnce]);
-
-  const start = () => {
-    if (running) return;
-    setReached(false); setStep(0);
-    setState({ x: 0.16, y: 0.78 });
-    setRunning(true);
-  };
-  const stop = () => { setRunning(false); setSamples([]); setElites([]); };
-  const placeGoal = (e) => {
-    if (running) return;
-    const r = canvasRef.current.getBoundingClientRect();
-    const x = clamp((e.clientX - r.left) / r.width, 0.05, 0.95);
-    const y = clamp((e.clientY - r.top) / r.height, 0.05, 0.95);
-    setGoal({ x, y }); setReached(false);
-  };
-
-  return (
-    <div className="my-8 rounded-2xl border overflow-hidden" style={{ borderColor: C.line, background: C.ink2 }}>
-      <div className="p-5 sm:p-6">
-        <div className="flex items-center justify-between flex-wrap gap-2 mb-1">
-          <h4 className="font-semibold text-lg" style={{ color: C.textHi }}>Plan in latent space (V-JEPA 2's control loop)</h4>
-          <Pill color={C.amber}>interactive</Pill>
-        </div>
-        <p className="text-sm mb-5" style={{ color: C.textDim }}>
-          The grid is a 2D stand-in for the latent space. The <span style={{color:C.amber}}>amber ring</span> is the
-          goal image's embedding; the <span style={{color:C.cyan}}>cyan dot</span> is the robot's current state.
-          Tap anywhere to move the goal, then press plan. Watch it sample action sequences (faint purple),
-          keep the <span style={{color:C.cyan}}>elite</span> ones closest to the goal, take a single step, and re-plan.
-        </p>
-
-        <div className="flex flex-col lg:flex-row gap-5">
-          <canvas ref={canvasRef} onClick={placeGoal}
-            role="img"
-            aria-label="Interactive 2D latent space. An amber ring marks the goal embedding; a glowing blue dot is the robot's current state; faint violet lines are sampled action rollouts and bright blue lines are the elite plans kept by the Cross-Entropy Method. Tap to move the goal, then press Plan & act."
-            className="rounded-xl w-full lg:w-[360px] h-[300px] shrink-0"
-            style={{ background: C.ink, border: `1px solid ${C.line}`, cursor: running ? "default" : "crosshair" }} />
-
-          <div className="flex-1">
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {[["horizon", HORIZON, "actions/plan"], ["samples", N, "per iteration"], ["elites", ELITE, "kept (CEM)"]].map(([k,v,l])=>(
-                <div key={k} className="rounded-xl p-3 text-center" style={{ background: C.ink3 }}>
-                  <div className="font-bold text-xl" style={{ color: C.cyan, fontFamily:"Fraunces, Georgia, serif" }}>{v}</div>
-                  <div className="text-[10px] font-mono mt-1" style={{ color: C.textFaint }}>{l}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="rounded-xl p-4 mb-4 text-[13.5px] leading-relaxed min-h-[78px]"
-                 style={{ background: C.ink3, color: C.text }}>
-              {reached ? (
-                <span><span style={{color:C.cyan}}>Goal reached.</span> Notice it never rendered a single pixel — every rollout was scored by L1 distance between <em>predicted</em> and <em>goal</em> embeddings. That's why this is fast enough to run on a real arm.</span>
-              ) : running ? (
-                <span>Planning… each faint path is an imagined action sequence rolled out through the predictor. The bright ones are the elites the Cross-Entropy Method keeps to refine its next guess. Step <span style={{color:C.cyan, fontFamily:"ui-monospace, Menlo, monospace"}}>{step}</span>.</span>
-              ) : (
-                <span>Ready. The robot has no policy and no map — only a predictor that answers "if I take these actions, where will my latent state be?" Planning means searching that predictor for actions that land near the goal.</span>
-              )}
-            </div>
-
-            <div className="flex gap-2">
-              <button onClick={running ? stop : start}
-                className="rounded-xl px-4 py-2.5 text-sm font-medium transition-all"
-                style={{ background: running ? "transparent" : C.cyan, color: running ? C.cyan : C.ink, border: `1px solid ${C.cyan}` }}>
-                {running ? "■ Stop" : reached ? "↺ Plan again" : "▶ Plan & act"}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <Aside tag="What's really happening" color={C.cyan}>
-          This is <B>model-predictive control</B>. There's no learned policy mapping states to actions — instead the
-          world model is <em>searched</em> at every step: imagine many futures, keep the ones closest to the goal,
-          commit to one action, look again, repeat. Because the search happens over <Hi>embeddings</Hi> rather than
-          predicted pixels, V-JEPA 2-AC plans an action in ~16 seconds where a pixel-generating world model needs minutes.
-        </Aside>
-      </div>
-    </div>
   );
 }
 
@@ -1600,48 +994,49 @@ function MathAppendix() {
   );
 }
 
-/* ========================================================================== */
-/*  Progress rail + section scaffolding                                        */
-/* ========================================================================== */
+/* ----- paginated-lecture context (robotic_learning style) ----------------- */
+const PageContext = React.createContext(null);
+const usePage = () => React.useContext(PageContext);
+/* id → "01".."10" for the sidebar index column (the welcome page has none) */
+const PAGE_IDX = Object.fromEntries(SECTIONS.map((s, i) => [s.id, String(i + 1).padStart(2, "0")]));
 
-function useScrollProgress() {
-  const [p, setP] = useState(0);
-  const [active, setActive] = useState("idea");
-  useEffect(() => {
-    const onScroll = () => {
-      const h = document.documentElement;
-      const max = h.scrollHeight - h.clientHeight;
-      setP(max > 0 ? h.scrollTop / max : 0);
-      // active section
-      let cur = SECTIONS[0].id;
-      for (const s of SECTIONS) {
-        const el = document.getElementById(s.id);
-        if (el && el.getBoundingClientRect().top < window.innerHeight * 0.4) cur = s.id;
-      }
-      setActive(cur);
-    };
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-  return { p, active };
-}
-
+/* One lecture: shown only when it's the current page. Each ends with a
+   mark-complete + prev/next bar so the separate lectures still flow as a course. */
 function Section({ id, children }) {
-  const C = useTheme();
-  return <section id={id} className="scroll-mt-20 py-16 sm:py-20 border-t" style={{ borderColor: C.line }}>{children}</section>;
-}
-function Heading({ num, eyebrow, title, intro }) {
-  const C = useTheme();
+  const { cur } = usePage();
   return (
-    <Reveal>
-      <Eyebrow num={num}>{eyebrow}</Eyebrow>
-      <h2 className="font-bold tracking-tight mb-5 text-[clamp(28px,5vw,44px)] leading-tight"
-          style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif", maxWidth: "20ch" }}>
-        {title}
-      </h2>
-      {intro && <p className="text-[19px] leading-relaxed mb-2" style={{ color: C.textDim }}>{intro}</p>}
-    </Reveal>
+    <section id={id} className={cx("lecture", cur === id && "visible")}>
+      {children}
+      <CompleteBarPager id={id} />
+    </section>
+  );
+}
+
+function CompleteBarPager({ id }) {
+  const { go, prevId, nextId, isDone, markPage } = usePage();
+  const prev = prevId(id), next = nextId(id), done = isDone(id);
+  return (
+    <div className="complete-bar">
+      <button className={cx("complete-btn", done && "done")} onClick={() => markPage(id)}>
+        {done ? "Completed ✓" : "Mark complete"}
+      </button>
+      <div className="pager">
+        <button disabled={!prev} onClick={() => prev && go(prev)}>← Prev</button>
+        <button disabled={!next} onClick={() => next && go(next)}>Next →</button>
+      </div>
+    </div>
+  );
+}
+
+/* Lecture header — the robotic_learning .lecture-head treatment. */
+function Heading({ num, eyebrow, title, intro }) {
+  return (
+    <div className="lecture-head">
+      {num && <span className="ltag">Lecture {num}</span>}
+      {eyebrow && <div className="eyebrow" style={{ marginBottom: 10 }}>{eyebrow}</div>}
+      <h2>{title}</h2>
+      {intro && <p className="dek">{intro}</p>}
+    </div>
   );
 }
 function P({ children }) {
@@ -1650,24 +1045,145 @@ function P({ children }) {
 }
 function H3({ children }) {
   const C = useTheme();
-  return <h3 className="text-[22px] font-semibold mt-10 mb-3" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>{children}</h3>;
+  return <h3 className="text-[22px] font-semibold mt-10 mb-3" style={{ color: C.textHi, fontFamily: "var(--font-display)" }}>{children}</h3>;
 }
 const Hi = ({ children, c }) => { const C = useTheme(); return <span style={{ color: c || C.cyan }}>{children}</span>; };
 const B = ({ children }) => { const C = useTheme(); return <strong style={{ color: C.textHi, fontWeight: 600 }}>{children}</strong>; };
+
+/* ----------------------------- shell chrome ------------------------------ */
+function Sidebar({ cur, go, isDone, progress, menuOpen }) {
+  return (
+    <aside className={cx("sidebar", menuOpen && "open")} id="sidebar">
+      <div className="brand">
+        <div className="eyebrow">Interactive course</div>
+        <h1><span className="dot" />Predict the Representation</h1>
+        <div className="sub">JEPA &amp; world models — Yann LeCun's bet<br />Built from scratch, to researcher depth</div>
+      </div>
+      <div className="progress-wrap">
+        <div className="progress-label"><span>Progress</span><b>{progress}%</b></div>
+        <div className="progress-track"><div className="progress-fill" style={{ width: progress + "%" }} /></div>
+      </div>
+      <nav className="nav" aria-label="Lectures">
+        {NAV_GROUPS.map((g) => (
+          <React.Fragment key={g.header}>
+            <div className="nav-group">{g.header}</div>
+            {g.items.map((id) => (
+              <button key={id} className={cx(cur === id && "active", isDone(id) && "is-done")}
+                onClick={() => go(id)} aria-current={cur === id ? "page" : undefined}>
+                <span className="idx">{PAGE_IDX[id] || "·"}</span>{PAGE_LABEL[id]}
+                <span className="done-mark">✓</span>
+              </button>
+            ))}
+          </React.Fragment>
+        ))}
+      </nav>
+      <div className="labs-link-wrap">
+        <a className="labs-link" href="#labs" title="From-scratch notebooks">⌥ From-scratch labs →</a>
+      </div>
+    </aside>
+  );
+}
+
+function MobileTopBar({ where, open, onToggle }) {
+  return (
+    <div className="topbar">
+      <button onClick={onToggle} aria-label="Toggle lecture menu" aria-expanded={open}>
+        {open ? "✕ Close" : "☰ Lectures"}
+      </button>
+      <span className="where">{where}</span>
+    </div>
+  );
+}
+
+/* The welcome page — the old hero, as the first lecture in the pager. */
+function StartLecture() {
+  const C = useTheme();
+  const { cur, go } = usePage();
+  return (
+    <section id="start" className={cx("lecture", cur === "start" && "visible")}>
+      <div className="relative overflow-hidden rounded-2xl mb-9"
+           style={{ border: `1px solid ${C.line}`, background: C.ink2, minHeight: 230 }}>
+        <HeroCanvas />
+        <div className="relative z-[2] p-7 sm:p-10">
+          <div className="eyebrow" style={{ marginBottom: 14 }}>An interactive course · Joint-Embedding Predictive Architecture</div>
+          <h1 className="tracking-tight text-[clamp(30px,5.2vw,54px)] leading-[1.04]"
+              style={{ color: C.textHi, fontFamily: "var(--font-display)", fontWeight: 800, maxWidth: "18ch", letterSpacing: "-0.03em" }}>
+            Don't predict the{" "}
+            <span style={{ color: C.textDim, textDecoration: "line-through", textDecorationThickness: 2, textDecorationColor: C.amber }}>pixels</span>.
+            <br />Predict the <span style={{ color: C.cyan, fontStyle: "italic" }}>representation</span>.
+          </h1>
+        </div>
+      </div>
+      <p className="text-[19px] leading-relaxed mb-3" style={{ color: C.textDim, maxWidth: "60ch" }}>
+        Yann LeCun's bet on how machines might learn to <B>reason, plan, and understand the physical world</B>.
+        You won't just read about it — you'll mask patches, collapse a latent space, and rebuild it, until JEPA
+        feels <Hi>inevitable</Hi>.
+      </p>
+      <p className="text-[15px] leading-relaxed mb-6" style={{ color: C.textDim, maxWidth: "60ch" }}>
+        We build the idea up from scratch, one lecture at a time — no black boxes. Use the sidebar to jump around,
+        or just press <B>Next</B> at the bottom of each lecture to follow the through-line.
+      </p>
+      <div className="flex items-center gap-3 flex-wrap">
+        <button className="lab-btn primary" style={{ padding: "11px 22px", fontSize: 14 }} onClick={() => go("idea")}>
+          Start the first lecture →
+        </button>
+        <span className="font-mono text-[12px] tracking-wide" style={{ color: C.textFaint }}>
+          ~40 min · 10 lectures · interactive throughout
+        </span>
+      </div>
+      <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[12.5px]" style={{ color: C.textDim }}>
+        <span className="font-mono uppercase tracking-wider text-[11px]" style={{ color: C.textFaint }}>colors mean things →</span>
+        {[["latent / signal", C.cyan], ["pixel / generative", C.amber], ["energy / abstraction", C.violet], ["correct", C.green]].map(([l, c]) => (
+          <span key={l} className="inline-flex items-center gap-1.5">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />{l}
+          </span>
+        ))}
+      </div>
+      <CompleteBarPager id="start" />
+    </section>
+  );
+}
+
+function SourcesFooter() {
+  const C = useTheme();
+  const { cur } = usePage();
+  if (cur !== "recap" && cur !== "start") return null;   // sources only on the bookend pages
+  const sources = [
+    ["van den Oord et al. — Contrastive Predictive Coding (2018)", "https://arxiv.org/abs/1807.03748"],
+    ["Ha & Schmidhuber — World Models (2018)", "https://arxiv.org/abs/1803.10122"],
+    ["Grill et al. — BYOL (2020)", "https://arxiv.org/abs/2006.07733"],
+    ["Chen & He — SimSiam (2021)", "https://arxiv.org/abs/2011.10566"],
+    ["Bardes, Ponce & LeCun — VICReg (2022)", "https://arxiv.org/abs/2105.04906"],
+    ["LeCun — A Path Towards Autonomous Machine Intelligence (2022)", "https://openreview.net/pdf?id=BZ5a1r-kVsf"],
+    ["Assran et al. — I-JEPA, CVPR (2023)", "https://arxiv.org/abs/2301.08243"],
+    ["Bardes et al. — V-JEPA (2024)", "https://arxiv.org/abs/2404.08471"],
+    ["Zhou et al. — DINO-WM (2024)", "https://arxiv.org/abs/2411.04983"],
+    ["Sobal et al. — PLDM / latent planning (2025)", "https://arxiv.org/abs/2502.14819"],
+    ["Assran, Ballas et al. — V-JEPA 2 (2025)", "https://arxiv.org/abs/2506.09985"],
+    ["Balestriero & LeCun — LeJEPA (2025)", "https://arxiv.org/abs/2511.08544"],
+    ["Maes, …, LeCun & Balestriero — LeWorldModel (2026)", "https://arxiv.org/abs/2603.19312"],
+  ];
+  return (
+    <footer style={{ borderTop: `1px solid ${C.line}`, marginTop: 56, paddingTop: 28 }}>
+      <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "var(--font-display)" }}>Primary sources</h4>
+      <ul className="space-y-1.5 text-[13.5px]" style={{ color: C.textDim, listStyle: "none", margin: 0, padding: 0 }}>
+        {sources.map(([t, h]) => (
+          <li key={h}><a href={h} target="_blank" rel="noreferrer" style={{ color: C.textDim }}>{t} ↗</a></li>
+        ))}
+      </ul>
+      <p className="text-[12.5px] mt-5" style={{ color: C.textFaint, fontStyle: "italic" }}>
+        Diagrams and simulations are original. JEPA is presented as a living research direction, not settled fact.
+      </p>
+    </footer>
+  );
+}
 
 /* ========================================================================== */
 /*  MAIN                                                                       */
 /* ========================================================================== */
 export default function JepaCourse() {
-  // theme state lives at the top; default follows the OS preference (falling back
-  // to dark), so first paint matches the user's system theme. Provider wraps
-  // everything so every component below reads the live palette via useTheme().
-  const [dark, setDark] = useState(() => {
-    if (typeof window === "undefined" || !window.matchMedia) return true;
-    return !window.matchMedia("(prefers-color-scheme: light)").matches;
-  });
-  const theme = dark ? DARK : LIGHT;
-  // tiny hash router so the from-scratch labs are a real, shareable separate page
+  // light-only app; the single palette is provided once. A tiny hash router keeps
+  // the from-scratch labs as a real, shareable separate page (#labs).
   const [route, setRoute] = useState(() => (typeof window !== "undefined" ? window.location.hash.replace(/^#\/?/, "") : ""));
   useEffect(() => {
     const f = () => setRoute(window.location.hash.replace(/^#\/?/, ""));
@@ -1675,166 +1191,40 @@ export default function JepaCourse() {
     return () => window.removeEventListener("hashchange", f);
   }, []);
   return (
-    <ThemeContext.Provider value={theme}>
-      {route === "labs"
-        ? <NotebooksPage dark={dark} setDark={setDark} />
-        : <CourseBody dark={dark} setDark={setDark} />}
+    <ThemeContext.Provider value={LIGHT}>
+      {route === "labs" ? <NotebooksPage dark={false} setDark={() => {}} /> : <CourseBody />}
     </ThemeContext.Provider>
   );
 }
 
-function CourseBody({ dark, setDark }) {
+function CourseBody() {
   const C = useTheme();
-  const { p, active } = useScrollProgress();
-  const [done, setDone] = useState({});
+  const [done, setDone] = useState({});                       // auto-marks from guesses/quizzes
+  const [pageDone, setPageDone] = useState(() => new Set());  // explicit "mark complete"
   const mark = useCallback((k) => setDone((d) => (d[k] ? d : { ...d, [k]: true })), []);
+  const [cur, setCur] = useState("start");
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const go = (id) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
-    setMenuOpen(false);
-  };
+  const isDone = useCallback(
+    (id) => pageDone.has(id) || (SECTION_CHECK[id] ? !!done[SECTION_CHECK[id]] : false),
+    [pageDone, done]);
+  const markPage = useCallback((id) => setPageDone((s) => { const n = new Set(s); n.add(id); return n; }), []);
+  const prevId = (id) => PAGES[PAGES.indexOf(id) - 1] || null;
+  const nextId = (id) => PAGES[PAGES.indexOf(id) + 1] || null;
+  const go = useCallback((id) => { setCur(id); setMenuOpen(false); if (typeof window !== "undefined") window.scrollTo(0, 0); }, []);
 
-  // nav background respects theme (warm neutrals)
-  const navBg = dark ? "rgba(21,20,15,.82)" : "rgba(250,249,246,.85)";
-  const progressTrack = C.line;
+  const progress = Math.round((PAGES.filter((id) => isDone(id)).length / PAGES.length) * 100);
+  const ctx = { cur, go, prevId, nextId, isDone, markPage, mark };
 
   return (
-    <div style={{ background: C.ink, color: C.text, fontFamily: 'var(--font-sans)' }}
-         className="min-h-screen w-full overflow-x-hidden transition-colors duration-500">
-      {/* font + selection styling — one elegant display serif (Fraunces), native
-          system sans for body (authentic, zero-load), system mono for code */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&display=swap');
-        :root{
-          --font-display:'Fraunces', Georgia, 'Times New Roman', serif;
-          --font-sans:-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', 'Segoe UI', system-ui, sans-serif;
-          --font-mono:ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
-        }
-        *{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
-        body{font-family:var(--font-sans)}
-        .font-mono{font-family:var(--font-mono)}
-        h1,h2,h3{font-optical-sizing:auto; letter-spacing:-0.015em}
-        ::selection{background:${C.cyan}26;color:${C.textHi}}
-        html{scroll-behavior:smooth}
-        input[type=range]{accent-color:${C.cyan}}
-        @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
-      `}</style>
-
-      {/* top progress bar */}
-      <div className="fixed top-0 left-0 right-0 z-[60] h-[2px]" style={{ background: progressTrack }}>
-        <div className="h-full transition-[width] duration-150"
-             style={{ width: `${p * 100}%`, background: C.cyan }} />
-      </div>
-
-      {/* nav */}
-      <nav className="fixed top-[3px] left-0 right-0 z-50 backdrop-blur-md border-b"
-           style={{ background: navBg, borderColor: C.line }}>
-        <div className="max-w-[1080px] mx-auto px-6 py-3 flex items-center justify-between gap-4">
-          <button onClick={() => go("top")} className="flex items-center gap-2.5 shrink-0">
-            <span className="w-2 h-2 rounded-full" style={{ background: C.cyan }} />
-            <span className="font-bold text-[14px] tracking-wide" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>
-              PREDICT THE REPRESENTATION
-            </span>
-          </button>
-          <div className="flex items-center gap-2">
-            <div className="hidden lg:flex gap-1">
-              {SECTIONS.map((s) => (
-                <button key={s.id} onClick={() => go(s.id)}
-                  className="font-mono text-[11px] tracking-wide uppercase px-2.5 py-1.5 rounded-md transition-all"
-                  style={{ color: active === s.id ? C.textHi : C.textDim,
-                           background: active === s.id ? C.ink3 : "transparent" }}>
-                  {s.label}
-                  {done[SECTION_CHECK[s.id]] && <span style={{ color: C.green }}> ✓</span>}
-                </button>
-              ))}
-            </div>
-            {/* link to the from-scratch labs (separate page, hash route) */}
-            <a href="#labs" title="From-scratch notebooks"
-               className="inline-flex items-center font-mono text-[11px] tracking-wide uppercase px-3 py-1.5 rounded-full transition-all shrink-0"
-               style={{ color: C.cyan, border: `1px solid ${C.cyan}55` }}>
-              Labs
-            </a>
-            {/* mobile / tablet sections menu (below the lg breakpoint where the
-                inline nav is hidden, so sections stay reachable on small screens) */}
-            <div className="lg:hidden relative">
-              <button onClick={() => setMenuOpen((o) => !o)} aria-label="Sections menu"
-                aria-expanded={menuOpen}
-                className="w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0"
-                style={{ border: `1px solid ${C.line}`, background: C.ink3, color: C.cyan }}>
-                {menuOpen ? <CloseIcon /> : <MenuIcon />}
-              </button>
-              {menuOpen && (
-                <div className="absolute right-0 mt-2 py-1.5 rounded-xl border shadow-xl max-h-[70vh] overflow-y-auto"
-                  style={{ background: C.ink2, borderColor: C.line, minWidth: 196 }}>
-                  {SECTIONS.map((s, i) => (
-                    <button key={s.id} onClick={() => go(s.id)}
-                      className="w-full text-left font-mono text-[12px] tracking-wide uppercase px-4 py-2 transition-all flex items-center gap-2"
-                      style={{ color: active === s.id ? C.textHi : C.textDim,
-                               background: active === s.id ? C.ink3 : "transparent" }}>
-                      <span style={{ color: C.textFaint }}>{String(i + 1).padStart(2, "0")}</span>
-                      {s.label}
-                      {done[SECTION_CHECK[s.id]] && <span className="ml-auto" style={{ color: C.green }}>✓</span>}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <button onClick={() => setDark((v) => !v)} aria-label="Toggle light or dark mode"
-              className="ml-1 w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0"
-              style={{ border: `1px solid ${C.line}`, background: C.ink3, color: C.cyan }}>
-              {dark ? <SunIcon /> : <MoonIcon />}
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* HERO */}
-      <header id="top" className="relative min-h-screen flex items-center pt-16 overflow-hidden">
-        <HeroCanvas />
-        <div className="absolute inset-0 z-[1]"
-             style={{ background: `radial-gradient(ellipse 70% 60% at 68% 42%, transparent, ${C.ink} 78%)` }} />
-        <div className="relative z-[2] max-w-[1080px] mx-auto px-6 w-full">
-          <Eyebrow>An interactive course · Joint-Embedding Predictive Architecture</Eyebrow>
-          <h1 className="tracking-tight text-[clamp(40px,7.5vw,78px)] leading-[1.05] mb-2"
-              style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif", fontWeight: 560, maxWidth: "16ch" }}>
-            Don't predict the{" "}
-            <span style={{ color: C.textDim, textDecoration: "line-through", textDecorationThickness: 2, textDecorationColor: C.amber }}>
-              pixels
-            </span>.<br />Predict the <span style={{ color: C.cyan, fontStyle: "italic" }}>representation</span>.
-          </h1>
-          <p className="text-[clamp(17px,2.3vw,21px)] leading-relaxed mt-7" style={{ color: C.textDim, maxWidth: "54ch" }}>
-            Yann LeCun's bet on how machines might learn to <B>reason, plan, and understand the physical world</B>.
-            You won't just read about it — you'll mask patches, collapse a latent space, and rebuild it, until JEPA
-            feels <Hi>inevitable</Hi>.
-          </p>
-          <p className="text-[15px] leading-relaxed mt-3" style={{ color: C.textFaint, maxWidth: "54ch" }}>
-            We'll build the idea up from scratch, one piece at a time. No black boxes — by the end you'll be able to
-            write the core loss in a few lines and know exactly why each one is there.
-          </p>
-          <div className="flex items-center gap-3 mt-9 flex-wrap">
-            <button onClick={() => go("idea")}
-              className="rounded-full px-7 py-3 font-medium text-[15px] transition-all hover:opacity-90"
-              style={{ background: C.cyan, color: "#fff" }}>
-              Start learning →
-            </button>
-            <span className="font-mono text-[12px] tracking-wide" style={{ color: C.textFaint }}>
-              ~40 min · 10 interactive labs · builds to researcher depth
-            </span>
-          </div>
-          {/* color legend — colors carry consistent meaning, which aids recall */}
-          <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[12.5px]" style={{ color: C.textDim }}>
-            <span className="font-mono uppercase tracking-wider text-[11px]" style={{ color: C.textFaint }}>colors mean things →</span>
-            {[["latent / signal", C.cyan], ["pixel / generative", C.amber], ["energy / abstraction", C.violet], ["correct", C.green]].map(([l, c]) => (
-              <span key={l} className="inline-flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full" style={{ background: c }} />{l}
-              </span>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-[1080px] mx-auto px-6">
+    <PageContext.Provider value={ctx}>
+      <MobileTopBar where={PAGE_LABEL[cur]} open={menuOpen} onToggle={() => setMenuOpen((o) => !o)} />
+      <div className={cx("scrim", menuOpen && "show")} onClick={() => setMenuOpen(false)} />
+      <div className="app">
+        <Sidebar cur={cur} go={go} isDone={isDone} progress={progress} menuOpen={menuOpen} />
+        <main className="main">
+          <div className="content">
+            <StartLecture />
 
         {/* ---------------- 01 THE IDEA ---------------- */}
         <Section id="idea">
@@ -1899,11 +1289,17 @@ function CourseBody({ dark, setDark }) {
             </div>
           </Reveal>
 
-          <PixelVsLatentLab />
+          <PixelVsLatentLabT />
 
           <Reveal>
             <div>
               <H3>The energy-based framing</H3>
+            </div>
+            <Instructor label="don't let 'energy-based model' scare you">
+              <p className="mb-2">The name sounds heavy; the idea is dead simple. A probabilistic model has to answer "how likely is <em>every</em> possible outcome?" — which means normalizing over everything, hopeless when "everything" is all possible images. An <B>energy-based model</B> ducks that entirely. It answers one question instead: <Hi>how compatible are these two things?</Hi></p>
+              <p>Low number = compatible, like a ball resting at the bottom of a valley. High number = incompatible, up on a hillside. You never compute a probability — you just <B>shape a landscape</B> so the right answers sit in the valleys. For a JEPA, that "energy" is literally its prediction error in embedding space.</p>
+            </Instructor>
+            <div>
               <P>Formally, a JEPA is an <B>Energy-Based Model</B>. It defines a scalar energy — the prediction error in embedding space — that should be <Hi>low</Hi> for compatible pairs and high for incompatible ones. EBMs sidestep the normalization that makes probabilistic generative models choke in high dimensions: you never integrate over all possible images.</P>
             </div>
             <div className="my-6 rounded-xl border p-5 font-mono text-[14px] leading-[1.9] overflow-x-auto"
@@ -1914,7 +1310,7 @@ function CourseBody({ dark, setDark }) {
               <span style={{ color: C.textFaint }}># encoder can't cheat by collapsing every input to one point</span><br/>
               ℒ = E(x, y) &nbsp;+&nbsp; <Hi c={C.amber}>λ · R</Hi>( <Hi>Enc</Hi>(x), <Hi>Enc</Hi>(y) )
             </div>
-            <P><span style={{color:C.textDim}}>The latent variable <Hi c={C.violet}>z</Hi> captures the information about <em>y</em> not present in <em>x</em> — one context can have many valid futures, and varying <Hi c={C.violet}>z</Hi> sweeps them out. That last term <Hi c={C.amber}>R</Hi> is doing more work than it looks: it's the whole subject of the next section.</span></P>
+            <P><span style={{color:C.textDim}}>The latent variable <Hi c={C.violet}>z</Hi> captures the information about <em>y</em> not present in <em>x</em> — one context can have many valid futures, and varying <Hi c={C.violet}>z</Hi> sweeps them out. (Keep an eye on <Hi c={C.violet}>z</Hi> — when we reach planning, this very variable becomes the robot's <em>action</em>.) That last term <Hi c={C.amber}>R</Hi> is doing more work than it looks: it's the whole subject of the next section.</span></P>
           </Reveal>
 
           <Reveal>
@@ -1952,6 +1348,7 @@ function CourseBody({ dark, setDark }) {
               <P>The network you keep. It maps the visible input to a representation <Hi>sx</Hi> and learns by backpropagation. In every published JEPA it's a Vision Transformer. After training, this is your feature extractor.</P>
               <H3>2 · Target encoder (the teacher)</H3>
               <P>Encodes the <Hi c={C.violet}>full</Hi> input to produce the targets the predictor chases — but it's <B>not trained directly</B>. Its weights are an exponential moving average of the student's, with a <B>stop-gradient</B> blocking learning signal. Why? Because if the targets are learned too, the model could win by making every representation identical. The slow, gradient-free teacher gives stable targets the student can't trivially game.</P>
+              <P><span style={{color:C.textDim}}>Worth separating two ideas that often get blurred: the <B>stop-gradient</B> is what breaks the learning-signal symmetry (the actual anti-collapse lever), while the <B>EMA</B> just makes the teacher a slow-moving copy. BYOL later showed a plain momentum encoder can stand in for EMA — evidence that the asymmetry, not EMA specifically, is doing the work. Concretely the EMA keeps ~99.6% of the teacher's weights each step and absorbs ~0.4% of the student's (τ ≈ 0.996) — slow on purpose, so the two encoders can't move in lockstep and collude.</span></P>
               <H3>3 · Predictor (the bridge)</H3>
               <P>A narrow network that takes <Hi>sx</Hi> plus the <B>position of the target</B> and outputs a predicted embedding. In video and robotics it also takes the latent <Hi c={C.violet}>z</Hi> or an action — "if I do this, the representation moves like so." This is the module that becomes a <B>world model</B>.</P>
             </div>
@@ -1980,7 +1377,14 @@ function CourseBody({ dark, setDark }) {
             </Instructor>
           </Reveal>
 
-          <CollapseLab />
+          <CollapseLabT />
+          <Reveal>
+            <Aside tag="The 2025 punchline" color={C.cyan}>
+              LeJEPA later <em style={{ color: C.cyan, fontStyle: "normal" }}>proved</em> that the ideal embedding distribution is an isotropic
+              Gaussian and enforced it with one regularizer (SIGReg) — removing the need for EMA, stop-gradient,
+              and teacher–student tricks entirely. The defenses you just toggled became a single principled term.
+            </Aside>
+          </Reveal>
 
           <GuessGate
             onResolved={() => mark("g2")}
@@ -1991,7 +1395,7 @@ function CourseBody({ dark, setDark }) {
               "Only if you also reconstruct pixels as a backup",
             ]}
             correct={1}
-            explanation={<>Exactly. Later analysis showed EMA alone doesn't <em>guarantee</em> a good solution — with a poor masking strategy or an over-powered predictor, embeddings can still collapse onto a subspace. That's why variance/covariance regularizers (VICReg, and later SIGReg) were added as a safety net.</>}
+            explanation={<>Exactly. Later analysis showed EMA alone doesn't <em>guarantee</em> a good solution — with a poor masking strategy or an over-powered predictor, embeddings can still collapse onto a subspace. (BYOL's success with this asymmetry alone was itself called "surprising"; precisely <em>why</em> it helps as much as it does still isn't fully understood.) That's why variance/covariance regularizers (VICReg, and later SIGReg) were added as a safety net.</>}
           />
 
           <Reveal>
@@ -2027,7 +1431,7 @@ function CourseBody({ dark, setDark }) {
 
           <Reveal>
             <H3>The two ways to shape an energy landscape</H3>
-            <ContrastiveVsRegularized />
+            <EnergyLandscapeLab />
             <div>
               <P>LeCun's argument for JEPA leans hard on the second column. Contrastive methods need to push up energy at <em>sampled</em> negative points, and in high dimensions you'd need an exponential number of negatives to cover the space — the curse of dimensionality. Regularized methods sidestep sampling entirely: they constrain the <Hi>statistics</Hi> of the embeddings so the low-energy region simply can't expand to fill space. This is why JEPA's lineage runs through VICReg and SIGReg, not InfoNCE.</P>
             </div>
@@ -2036,7 +1440,7 @@ function CourseBody({ dark, setDark }) {
           <Reveal>
             <div>
               <H3>VICReg, for real — the three terms in code</H3>
-              <P>Earlier you toggled "variance–covariance regularization" as a black box. Here is what those words actually compute. Given a batch of embeddings <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>Z</code> (N samples × D dims), VICReg is three terms with fixed coefficients λ=μ=25, ν=1:</P>
+              <P>Earlier you toggled "variance–covariance regularization" as a black box. Here is what those words actually compute. Given a batch of embeddings <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>Z</code> (N samples × D dims), VICReg is three terms. The coefficients <Hi>λ=μ=25, ν=1</Hi> are the paper's ImageNet values — not universal constants; they're tuned per dataset, batch size, and embedding dimension:</P>
             </div>
             <CodeBlock title="vicreg.py — the loss that prevents collapse without negatives"
               lines={[
@@ -2063,21 +1467,33 @@ function CourseBody({ dark, setDark }) {
           </Reveal>
 
           <Reveal>
+            <P>Don't take the three terms on faith — turn each one off and watch the space die in exactly the way it was preventing:</P>
+            <VICRegIsolatorLab />
+          </Reveal>
+
+          <Reveal>
             <div>
               <H3>The masking strategy is a design decision, not a detail</H3>
               <P>I-JEPA's results hinge on <em>how</em> you choose context and targets. Predicting single scattered patches just tests local texture interpolation; the model learns nothing semantic. The fix — <B>multi-block masking</B> — is specific and worth knowing by the numbers:</P>
             </div>
-            <MaskingStrategyViz />
+            <MaskingDifficultyLab />
             <div>
               <P>Two subtleties that trip people up. The targets are masked at the <Hi>output of the target encoder</Hi>, not the input — the teacher sees the whole image, then you select which of its representations to predict. And context–target <Hi>overlap is removed</Hi>, so the predictor can't cheat by copying a region it already sees. These are the choices that make the task semantic rather than trivial.</P>
             </div>
           </Reveal>
 
+        </Section>
+
+        {/* ---------------- 04¾ FRONTIER & EVAL ---------------- */}
+        <Section id="depth2">
+          <Heading num="04¾" eyebrow="The frontier & how it's measured"
+            title={<>The provable rewrite — and how you judge a representation at all</>}
+            intro="You have the energy view and the regularizers that prevent collapse. Two things finish the picture: SIGReg, the 2025 result that replaced the whole toolkit, and the protocols researchers actually use to measure whether a learned representation is any good." />
           <Reveal>
             <div>
               <H3>SIGReg: how LeJEPA replaced the whole toolkit</H3>
-              <P>LeJEPA's claim is sharp: the <Hi>isotropic Gaussian</Hi> 𝒩(0, I) is the unique embedding distribution that minimizes worst-case downstream prediction risk. So instead of EMA, stop-gradients, and VICReg's three terms, just push the embeddings toward that one distribution. The trick is doing it cheaply in high dimensions — you can't directly match a 1024-dim density.</P>
-              <P><B>SIGReg</B> (Sketched Isotropic Gaussian Regularization) uses a <Hi>sketching</Hi> idea: a distribution is 𝒩(0, I) if and only if <em>every</em> 1-D projection of it is a standard 1-D Gaussian (the Cramér–Wold theorem). So project the batch onto many random directions and run a univariate normality test (Epps–Pulley) on each. This is linear in dimension and batch size, has one hyperparameter (λ), and needs no teacher, no stop-gradient, no negatives.</P>
+              <P>LeJEPA's claim is sharp — though worth stating with its assumptions: <Hi>for linear downstream probes with standard Gaussian priors</Hi>, the <Hi>isotropic Gaussian</Hi> 𝒩(0, I) is the embedding distribution that minimizes worst-case prediction risk. (It need not be optimal for arbitrary nonlinear fine-tuning.) So instead of EMA, stop-gradients, and VICReg's three terms, just push the embeddings toward that one distribution. The trick is doing it cheaply in high dimensions — you can't directly match a 1024-dim density.</P>
+              <P><B>SIGReg</B> (Sketched Isotropic Gaussian Regularization) uses a <Hi>sketching</Hi> idea: a distribution is 𝒩(0, I) if and only if <em>every</em> 1-D projection of it is a standard 1-D Gaussian (the Cramér–Wold theorem — like proving a shape is a sphere by checking that every shadow it casts is a circle). So project the batch onto many random directions and run a univariate normality test (Epps–Pulley) on each. Its cost is roughly O(P · batch) for a few hundred projections P, has one hyperparameter (λ), and needs no teacher, no stop-gradient, no negatives.</P>
             </div>
             <div className="my-6 rounded-xl border p-5 font-mono text-[14px] leading-[1.9] overflow-x-auto"
                  style={{ borderColor: C.line, background: C.ink2, color: C.textHi }}>
@@ -2086,6 +1502,11 @@ function CourseBody({ dark, setDark }) {
               <span style={{ color: C.textFaint }}># Gaussianity = Epps–Pulley test statistic (linear cost)</span><br/>
               <span style={{ color: C.textFaint }}># Cramér–Wold: all 1-D projections Gaussian ⟺ joint is Gaussian</span>
             </div>
+          </Reveal>
+
+          <Reveal>
+            <P>What does that isotropic-Gaussian target actually <em>look</em> like? Flip between the shapes and watch the statistics — round and uncorrelated is the goal; a point, a line, or an ellipse all waste the space:</P>
+            <LatentGeometryLab />
           </Reveal>
 
           <Reveal>
@@ -2131,7 +1552,7 @@ function CourseBody({ dark, setDark }) {
             </div>
             <div className="my-10 text-center">
               <p className="text-[clamp(20px,3.2vw,28px)] leading-snug italic mx-auto"
-                 style={{ fontFamily: "Fraunces, Georgia, serif", color: C.textHi, maxWidth: "24ch" }}>
+                 style={{ fontFamily: "var(--font-display)", color: C.textHi, maxWidth: "24ch" }}>
                 "Generative methods try to fill in every bit of missing information, even though the world is inherently unpredictable."
               </p>
               <span className="font-mono text-[12px] tracking-wider uppercase mt-4 inline-block" style={{ color: C.cyan }}>
@@ -2194,7 +1615,7 @@ function CourseBody({ dark, setDark }) {
             <div>
               <H3>The six-module brain JEPA was built to power</H3>
               <P>Crucial context for where this is all heading: JEPA was never meant as a standalone vision model. In the 2022 paper it's one component of a proposed autonomous agent with six differentiable modules — <B>configurator</B> (executive control), <B>perception</B> (current state), <B>world model</B> (fill in missing state, predict futures — where JEPA lives), <B>cost</B> (a scalar "discomfort" to minimize), <B>actor</B> (propose action sequences), and <B>short-term memory</B>.</P>
-              <P>Planning works by the actor proposing actions, the world model predicting their consequences <Hi>in latent space</Hi>, and gradients of the cost flowing back through the whole differentiable chain. The <B>hierarchical</B> version (H-JEPA) stacks world models at multiple abstraction levels: detailed representations for short-horizon prediction, abstract ones for long-horizon planning. V-JEPA 2's robotics work begins to make this real.</P>
+              <P>Planning works by the actor proposing actions, the world model predicting their consequences <Hi>in latent space</Hi>, and gradients of the cost flowing back through the whole differentiable chain. The <B>hierarchical</B> version (H-JEPA) stacks world models at multiple abstraction levels: detailed representations for short-horizon prediction, abstract ones for long-horizon planning. Both levels train with the same predict-the-representation objective and anti-collapse machinery; the new part is that the abstract level's predictions act as <Hi>subgoals</Hi> the detailed level steers toward — long-horizon plans get made where the future is actually predictable. V-JEPA 2's robotics work begins to make this real.</P>
             </div>
           </Reveal>
           <Reveal><HJepaDiagram /></Reveal>
@@ -2205,11 +1626,33 @@ function CourseBody({ dark, setDark }) {
           <Heading num="07" eyebrow="The family, in depth"
             title={<>From one image to a robot planning in a lab it's never seen</>}
             intro="Each model takes the same core idea into a new domain or fixes a known weakness. Explore what actually changed each time." />
+          <Reveal>
+            <div className="my-6 flex flex-wrap items-center gap-1.5">
+              {[["2023", "I-JEPA", "images"], ["2024", "V-JEPA", "+ time"], ["Jun 2025", "V-JEPA 2", "world model"], ["Nov 2025", "LeJEPA", "provable"], ["Mar 2026", "LeWM", "end-to-end"]].map(([yr, name, add], i, arr) => (
+                <React.Fragment key={name}>
+                  <span className="rounded-lg px-2.5 py-1.5 font-mono text-[11px]" style={{ border: `1px solid ${C.line}`, background: C.ink2 }}>
+                    <span style={{ color: C.textFaint }}>{yr}</span>{" "}<B>{name}</B>{" "}<span style={{ color: C.cyan }}>{add}</span>
+                  </span>
+                  {i < arr.length - 1 && <span style={{ color: C.textFaint }}>→</span>}
+                </React.Fragment>
+              ))}
+            </div>
+            <P>Read it as one question repeated: <em>what was still missing?</em> Each model adds exactly one thing the last one lacked — a new domain, a proof, or a simpler recipe.</P>
+          </Reveal>
           <ModelExplorer />
           <Reveal><TwoStageTraining /></Reveal>
           <Reveal>
             <Instructor label="how does it actually plan? walk with me">
-              <p className="mb-2">The robotics result sounds like sci-fi — "zero-shot planning in a lab it's never seen" — so let's strip it down until it's obviously not magic. The robot wants to reach a goal, and you hand it a single <Hi>photo</Hi> of the goal (block in the box). Here's the entire loop:</p>
+              <p className="mb-2">The robotics result sounds like sci-fi — "zero-shot planning in a lab it's never seen" — so let's strip it down until it's obviously not magic. The robot wants to reach a goal, and you hand it a single <Hi>photo</Hi> of the goal (block in the box). (Remember <Hi c={C.violet}>z</Hi> from "Why Latent" — the part of the future the context couldn't pin down? In a controllable world model that slot <em>is</em> the action: "if I do <Hi>this</Hi>, the latent state moves like so.")</p>
+              <p className="mb-2">"Plan" here means the <B>Cross-Entropy Method</B> (CEM) — there's no trained policy, just a search that repeats five steps:</p>
+              <ol className="mb-3" style={{ margin: "0 0 12px 20px" }}>
+                <li className="mb-1"><B>Sample</B> a few hundred random action sequences.</li>
+                <li className="mb-1"><B>Roll out</B> each one through the predictor to see where it lands in latent space.</li>
+                <li className="mb-1"><B>Score</B> each by distance to the goal <em>embedding</em> (not goal pixels).</li>
+                <li className="mb-1"><B>Keep the elites</B> — the best handful — refit a distribution to them, and resample around them.</li>
+                <li><B>Execute one action</B> (the first of the best plan), then look again and replan.</li>
+              </ol>
+              <p className="mb-2">Written out, it's just that loop:</p>
               <CodeBlockInline />
               <p className="mt-3">That's model-predictive control, and notice the key move on the scoring line: it compares <Hi>imagined embedding</Hi> to <Hi>goal embedding</Hi> — two short vectors — not imagined pixels to goal pixels. The same "do everything in representation space" trick from the very first section is what makes planning cheap enough to run on a real arm. <B>It's the same idea the whole way down.</B></p>
             </Instructor>
@@ -2228,7 +1671,7 @@ function CourseBody({ dark, setDark }) {
           />
 
           <Reveal>
-            <LatentPlanningLab />
+            <LatentPlanningLabT />
           </Reveal>
           <Reveal>
             <div>
@@ -2401,6 +1844,15 @@ function CourseBody({ dark, setDark }) {
                 "",
                 "    return loss.item()",
               ]} />
+            <Instructor label="read it with me — three lines carry the whole idea">
+              <p className="mb-2">Don't read it as 40 equal lines. Three moments are the entire architecture; the rest is plumbing:</p>
+              <ul style={{ margin: "0 0 8px 20px" }}>
+                <li className="mb-1"><B>The <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>with torch.no_grad()</code> block</B> — the teacher gets no gradient and its targets are read off the <em>full</em> image. That stop-gradient is the anti-collapse lever.</li>
+                <li className="mb-1"><B>The <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>sample_blocks()</code> scales</B> — one big context, four large targets. Shrink the targets to single patches and the task becomes texture-copying; the semantics die.</li>
+                <li><B>The <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>mse(pred, tgt)</code> + EMA update</B> — the loss lives in embedding space, and the teacher only ever trails the student by 0.4% a step. No pixels, no negatives.</li>
+              </ul>
+              <p>If you change one thing first, make it the target scale — it's the line that most changes what the model learns.</p>
+            </Instructor>
           </Reveal>
 
           <Reveal>
@@ -2412,7 +1864,7 @@ function CourseBody({ dark, setDark }) {
           <Reveal>
             <div className="my-8 text-center">
               <p className="text-[clamp(19px,3vw,26px)] leading-snug mx-auto"
-                 style={{ fontFamily: "Fraunces, Georgia, serif", color: C.textHi, maxWidth: "26ch" }}>
+                 style={{ fontFamily: "var(--font-display)", color: C.textHi, maxWidth: "26ch" }}>
                 Predict the representation, regularize the geometry, plan in latent space.
               </p>
               <span className="font-mono text-[12px] tracking-wider uppercase mt-4 inline-block" style={{ color: C.cyan }}>
@@ -2421,45 +1873,10 @@ function CourseBody({ dark, setDark }) {
             </div>
           </Reveal>
         </Section>
-      </main>
-
-      {/* footer */}
-      <footer className="border-t py-14" style={{ borderColor: C.line, background: C.ink2 }}>
-        <div className="max-w-[1080px] mx-auto px-6 grid md:grid-cols-2 gap-10">
-          <div>
-            <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>About this course</h4>
-            <p className="text-[14px] leading-relaxed" style={{ color: C.textDim }}>
-              A ground-up, interactive walkthrough of Joint-Embedding Predictive Architectures — built to take you
-              from surface intuition to design rationale through prediction, manipulation, and retrieval rather than
-              passive reading. Diagrams and simulations are original; JEPA is presented as a living research direction.
-            </p>
+            <SourcesFooter />
           </div>
-          <div>
-            <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>Primary sources</h4>
-            <ul className="space-y-2 text-[13.5px]" style={{ color: C.textDim }}>
-              {[
-                ["van den Oord et al. — Contrastive Predictive Coding (2018)", "https://arxiv.org/abs/1807.03748"],
-                ["Ha & Schmidhuber — World Models (2018)", "https://arxiv.org/abs/1803.10122"],
-                ["Grill et al. — BYOL (2020)", "https://arxiv.org/abs/2006.07733"],
-                ["Chen & He — SimSiam (2021)", "https://arxiv.org/abs/2011.10566"],
-                ["Bardes, Ponce & LeCun — VICReg (2022)", "https://arxiv.org/abs/2105.04906"],
-                ["LeCun — A Path Towards Autonomous Machine Intelligence (2022)", "https://openreview.net/pdf?id=BZ5a1r-kVsf"],
-                ["Assran et al. — I-JEPA paper, CVPR (2023)", "https://arxiv.org/abs/2301.08243"],
-                ["Meta — I-JEPA blog (2023)", "https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/"],
-                ["Bardes et al. — V-JEPA paper (2024)", "https://arxiv.org/abs/2404.08471"],
-                ["Zhou et al. — DINO-WM (2024)", "https://arxiv.org/abs/2411.04983"],
-                ["Sobal et al. — PLDM / latent planning (2025)", "https://arxiv.org/abs/2502.14819"],
-                ["Assran, Ballas et al. — V-JEPA 2 paper (2025)", "https://arxiv.org/abs/2506.09985"],
-                ["Meta — V-JEPA 2 world model & benchmarks (2025)", "https://ai.meta.com/blog/v-jepa-2-world-model-benchmarks/"],
-                ["Balestriero & LeCun — LeJEPA (2025)", "https://arxiv.org/abs/2511.08544"],
-                ["Maes, …, LeCun & Balestriero — LeWorldModel (2026)", "https://arxiv.org/abs/2603.19312"],
-              ].map(([t, h]) => (
-                <li key={h}><a href={h} target="_blank" rel="noreferrer" className="hover:underline" style={{ color: C.textDim }}>{t} ↗</a></li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      </footer>
-    </div>
+        </main>
+      </div>
+    </PageContext.Provider>
   );
 }

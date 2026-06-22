@@ -1,39 +1,41 @@
 import React from "react";
 
 /* ----------------------------- design tokens -----------------------------
-   "Editorial Apple": calm, warm-neutral, near-monochrome, with ONE restrained
-   accent. Grounded in learning/perception research:
-   • Low overall saturation + neutral-dominant surfaces reduce visual fatigue and
-     extraneous cognitive load over long reading sessions (cognitive-load theory).
-   • A single calm BLUE accent carries focus/links/"the signal" — blue is the most
-     consistently evidenced hue for sustained concentration and calm.
-   • High text-to-background contrast (AA+) is the biggest lever on readability.
-   • Semantic coding is preserved but de-saturated to gentle TINTS, not neon:
-     blue = signal/latent, green = correct, amber = the "pixel/generative" foil,
-     violet = energy (used rarely). Restraint reads as elegant; rainbows read as noise.
-   • Warm (not cold-gray) neutrals + soft hairlines + real (not glowing) shadows
-     feel human and physical rather than synthetic. glow≈0 on purpose.
-   Token NAMES are stable (components read C.cyan etc.); only the VALUES changed. */
+   Shared design language with the "Robot Learning" companion
+   (/Frontend/robotic_learning): a clean, editorial, GitHub-influenced light
+   theme — warm-neutral paper, ONE saturated cobalt accent, an orange "signal"
+   for emphasis/action, muted semantic tints, hairline borders. Light-mode only.
+
+   The token NAMES are stable — every component reads C.cyan / C.amber / C.ink
+   etc. via the useTheme() hook — so the entire UI reskins from this one file.
+   The semantic mapping onto the robotic_learning palette:
+
+     cyan   → cobalt   (#2742CC)  the single accent: links, signal, "latent"
+     amber  → signal   (#E8590C)  emphasis / action / the "pixel" foil
+     violet → violet               energy / abstraction (used sparingly)
+     green  → right    (#1B7F4D)  correct / healthy
+     ink*   → paper / panel surfaces (light)
+     text*  → ink / muted text
+     code*  → the always-dark code surface
+
+   The exact hex values live in src/styles.css as CSS custom properties
+   (--cobalt, --signal, --paper, …); this object mirrors them for the inline
+   styles and the canvas/SVG widgets that need JS color values.
+
+   LIGHT and DARK are intentionally IDENTICAL — the app is light-only, but the
+   two exports are kept so the (now no-op) theme plumbing in JepaCourse keeps
+   compiling until the shell is rebuilt. */
 export const LIGHT = {
-  cyan: "#2f6df0", cyanDeep: "#1c50c8",     // the single accent: a calm, focused blue
-  amber: "#b06a1c", amberDeep: "#8a5212",   // the "pixel/generative" foil — muted ochre
-  violet: "#6a5bd0",                          // energy/abstraction — used sparingly
-  green: "#2f9469", greenDeep: "#1f7a54",    // correct / healthy
-  ink: "#faf9f6", ink2: "#ffffff", ink3: "#f1efea", line: "#e6e3dc",   // warm paper neutrals
-  text: "#322f2a", textHi: "#1a1814", textDim: "#6c675e", textFaint: "#a09a8e",
-  codeBg: "#1b1a18", codeBar: "#232220", glow: 0, isDark: false,        // code stays warm-dark
-  okBg: "#e8f1ec", warnBg: "#f4ecdd",
+  cyan: "#2742CC", cyanDeep: "#1D33A3",      // cobalt — the single accent
+  amber: "#E8590C", amberDeep: "#C0490A",    // signal orange — emphasis / "pixel" foil
+  violet: "#6A4FD0",                          // energy / abstraction (sparing)
+  green: "#1B7F4D", greenDeep: "#14633B",    // correct / healthy
+  ink: "#FAFBFC", ink2: "#FFFFFF", ink3: "#F0F3F8", line: "#D9DFE7",  // paper + panel surfaces
+  text: "#161B22", textHi: "#0D1117", textDim: "#5B6572", textFaint: "#8A93A3",
+  codeBg: "#10151E", codeBar: "#1B2230", glow: 0, isDark: false,      // always-dark code surface
+  okBg: "#E5F4EC", warnBg: "#FDEDE3",        // correct / signal tints
 };
-export const DARK = {
-  cyan: "#6ea2ff", cyanDeep: "#9ec0ff",     // accent lifted for dark surfaces
-  amber: "#dca766", amberDeep: "#e7bd86",
-  violet: "#a99ff0",
-  green: "#69c79c", greenDeep: "#8ad9b5",
-  ink: "#15140f", ink2: "#1c1b16", ink3: "#26241e", line: "#322f28",    // warm near-black
-  text: "#e7e3d9", textHi: "#fbfaf5", textDim: "#a39d8f", textFaint: "#6f6a5e",
-  codeBg: "#100f0d", codeBar: "#1a1916", glow: 0, isDark: true,
-  okBg: "#19281f", warnBg: "#2b2517",
-};
+export const DARK = LIGHT;   // light-only app; alias kept so existing plumbing compiles
 
 export const ThemeContext = React.createContext(LIGHT);
 export const useTheme = () => React.useContext(ThemeContext);

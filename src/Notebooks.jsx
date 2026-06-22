@@ -66,7 +66,7 @@ function Markdown({ source }) {
     while (i < lines.length && !/^\s*$/.test(lines[i]) && !blockStart(lines[i])) buf.push(lines[i++]);
     blocks.push({ t: "p", v: buf.join(" ") });
   }
-  const serif = "Fraunces, Georgia, serif";
+  const serif = "var(--font-display)";
   return (
     <div style={{ color: C.text }}>
       {blocks.map((b, idx) => {
@@ -217,17 +217,15 @@ export default function NotebooksPage({ dark, setDark }) {
             <span style={{ color: C.cyan, fontSize: 18 }}>←</span>
             <span className="font-medium text-[14px]" style={{ color: C.textHi }}>Back to the course</span>
           </a>
-          <button onClick={() => setDark((v) => !v)} aria-label="Toggle light or dark mode"
-            className="w-9 h-9 rounded-lg flex items-center justify-center transition-all shrink-0"
-            style={{ border: `1px solid ${C.line}`, background: C.ink3, color: C.cyan }}>
-            {dark ? <SunIcon /> : <MoonIcon />}
-          </button>
+          <a href="#labs" className="font-mono text-[11px] tracking-wide uppercase shrink-0" style={{ color: C.textDim }}>
+            4 notebooks
+          </a>
         </div>
       </nav>
 
       <main className="max-w-[820px] mx-auto px-6 pt-28 pb-24">
         <div className="font-mono text-xs tracking-[0.18em] uppercase mb-4" style={{ color: C.cyan }}>From-scratch labs</div>
-        <h1 style={{ fontFamily: "Fraunces, Georgia, serif", fontWeight: 560, fontSize: "clamp(34px,6vw,52px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: C.textHi, maxWidth: "18ch" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontWeight: 800, fontSize: "clamp(34px,6vw,52px)", lineHeight: 1.05, letterSpacing: "-0.02em", color: C.textHi, maxWidth: "18ch" }}>
           JEPA, in runnable code
         </h1>
         <p className="mt-5 text-[18px] leading-relaxed" style={{ color: C.textDim, maxWidth: "60ch" }}>
@@ -245,7 +243,7 @@ export default function NotebooksPage({ dark, setDark }) {
                 className="text-left rounded-2xl px-4 py-3 transition-all"
                 style={{ background: on ? C.ink2 : "transparent", border: `1px solid ${on ? C.cyan : C.line}`, minWidth: 150, flex: "1 1 150px", boxShadow: on ? `0 1px 0 ${C.cyan}22` : "none" }}>
                 <div className="font-mono text-[11px]" style={{ color: on ? C.cyan : C.textFaint }}>{nb.n}</div>
-                <div className="font-medium text-[15px] mt-0.5" style={{ color: C.textHi, fontFamily: "Fraunces, Georgia, serif" }}>{nb.title}</div>
+                <div className="font-medium text-[15px] mt-0.5" style={{ color: C.textHi, fontFamily: "var(--font-display)" }}>{nb.title}</div>
                 <div className="text-[12px] mt-0.5" style={{ color: C.textDim }}>{nb.sub}</div>
               </button>
             );
