@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { usefulSignal, wastedEffort, usefulFraction } from "./reconTax.js";
+import { usefulSignal, wastedEffort, usefulFraction, frothPenalty } from "./reconTax.js";
 
 describe("reconstruction tax", () => {
   it("useful signal saturates early (concave, near-100 at full detail)", () => {
@@ -13,5 +13,11 @@ describe("reconstruction tax", () => {
   });
   it("useful fraction falls as detail rises (the tax)", () => {
     expect(usefulFraction(10)).toBeGreaterThan(usefulFraction(100));
+  });
+  it("froth penalty rises with detail and stays in [0,1] (the generative loss floor)", () => {
+    expect(frothPenalty(100)).toBeGreaterThan(frothPenalty(50));
+    expect(frothPenalty(50)).toBeGreaterThan(frothPenalty(5));
+    expect(frothPenalty(5)).toBeGreaterThanOrEqual(0);
+    expect(frothPenalty(100)).toBeLessThanOrEqual(1);
   });
 });

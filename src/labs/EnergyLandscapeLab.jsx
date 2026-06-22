@@ -16,6 +16,7 @@ export default function EnergyLandscapeLab() {
     const Y = (e) => 18 + (1 - e) * (H - 56);   // energy points up
     let widthOut;
 
+    const THRESH = 0.3; // the "useful" energy threshold lowEnergyWidth() counts under
     const draw = () => {
       R.clr(svg);
       const opts = { strength, center, width: 0.09 };
@@ -24,8 +25,20 @@ export default function EnergyLandscapeLab() {
       svg.appendChild(R.E("line", { x1: 24, y1: H - 38, x2: W - 24, y2: H - 38, stroke: R.C.axis, "stroke-width": 1 }));
       svg.appendChild(R.TX(24, 14, "energy", { anchor: "start", size: 10, fill: R.C.dim }));
       svg.appendChild(R.TX(W - 24, H - 24, "embedding slice →", { anchor: "end", size: 10, fill: R.C.dim }));
-      // the energy curve
+      // the energy curve, sampled
       const curve = energyCurve(mode, opts, 120);
+      // translucent red band: the low-energy region (curve clamped to the
+      // threshold) — the area the learner watches SHRINK as strength rises.
+      const yThresh = Y(THRESH);
+      const bandTop = curve.map((p) => `${X(p.u).toFixed(1)},${Y(Math.min(p.e, THRESH)).toFixed(1)}`);
+      const bandPath =
+        `M ${X(0).toFixed(1)},${yThresh.toFixed(1)} L ` + bandTop.join(" L ") +
+        ` L ${X(1).toFixed(1)},${yThresh.toFixed(1)} Z`;
+      svg.appendChild(R.E("path", { d: bandPath, fill: R.C.red, "fill-opacity": 0.22, stroke: "none" }));
+      // dashed "useful" threshold line at E = 0.3
+      svg.appendChild(R.E("line", { x1: 24, y1: yThresh, x2: W - 24, y2: yThresh, stroke: R.C.red, "stroke-width": 1, "stroke-dasharray": "4 4", "stroke-opacity": 0.7 }));
+      svg.appendChild(R.TX(26, yThresh - 4, "useful threshold", { anchor: "start", size: 9, fill: R.C.red }));
+      // the energy curve
       const d = "M " + curve.map((p) => `${X(p.u).toFixed(1)},${Y(p.e).toFixed(1)}`).join(" L ");
       svg.appendChild(R.E("path", { d, fill: "none", stroke: accent, "stroke-width": 2.6 }));
       // data marker in the valley
@@ -64,6 +77,6 @@ export default function EnergyLandscapeLab() {
 
   return (
     <Lab id="energy" title="Shape the energy landscape" setup={setup}
-      note="An EBM is only useful if low energy is RARE — reserved for compatible data. Two ways to keep energy high everywhere else: push up sampled negatives (contrastive — you must find them), or constrain the embedding statistics so the valley can't widen (regularized — one knob, no negatives). Watch the low-energy region shrink as you turn up the strength." />
+      note="An EBM is only useful if low energy is RARE — reserved for compatible data. Two ways to keep energy high everywhere else: push up sampled negatives (contrastive — each arrow raises a real bump in the energy), or constrain the embedding statistics so the valley can't widen (regularized — one knob, no negatives). Turn up the strength and watch the red low-energy band shrink: that shrinking is the whole point." />
   );
 }
