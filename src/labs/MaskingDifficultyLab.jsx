@@ -29,7 +29,7 @@ export default function MaskingDifficultyLab() {
       targetBlocks({ scale, aspect, count }, rng).forEach((t) => {
         svg.appendChild(R.E("rect", { x: t.x * W, y: t.y * H, width: t.w * W, height: t.h * H, fill: R.C.violet, opacity: 0.4, stroke: R.C.violet, "stroke-width": 1.5, rx: 2 }));
       });
-      const sc = semanticScore({ scale, count }), lab = difficultyLabel(sc);
+      const sc = semanticScore({ scale, count, aspect }), lab = difficultyLabel(sc);
       const c = sc > 0.6 ? R.C.green : sc > 0.33 ? R.C.cyan : R.C.orange;
       const blurb = sc > 0.6
         ? "Large target blocks force the model to predict <i>what's there</i> — object-level structure."
@@ -52,6 +52,6 @@ export default function MaskingDifficultyLab() {
 
   return (
     <Lab id="maskdiff" title="Tune the masking task" setup={setup}
-      note="I-JEPA's scales aren't arbitrary. Drag target scale down and the meter swings to TEXTURE — the model can just interpolate neighboring patches. Keep blocks large (its real ~0.15–0.2 range) and the task stays SEMANTIC. Aspect and count vary the shape so the model can't exploit a fixed geometry." />
+      note="I-JEPA's scales aren't arbitrary. Drag target scale down and the meter swings to TEXTURE — the model can just interpolate neighboring patches. Keep blocks large (its real ~0.15–0.2 range) and the task stays SEMANTIC. Push aspect to an extreme and the blocks become thin slivers — easy to interpolate from their long edges, so the meter dips back toward texture too." />
   );
 }

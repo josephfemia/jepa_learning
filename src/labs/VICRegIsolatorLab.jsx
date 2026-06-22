@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import Lab from "../widgets/Lab.jsx";
 import R from "../widgets/rllab.js";
-import { stepPoint } from "../logic/collapseSim.js";
+import { stepPoint, spread, offDiagonalSpread } from "../logic/collapseSim.js";
 import { clamp, lerp } from "../logic.js";
 
 /* VICReg Term Isolator — toggle each of VICReg's three terms OFF and watch the
@@ -27,6 +27,9 @@ export default function VICRegIsolatorLab() {
       return { hx, hy, x: hx, y: hy, g: i % 2 };
     });
     const reseed = () => { pts = pts.map((p) => ({ ...p, x: p.hx + (Math.random() - 0.5) * 0.04, y: p.hy + (Math.random() - 0.5) * 0.04 })); };
+    const homes = pts.map((p) => ({ x: p.hx, y: p.hy }));
+    const refV = spread(homes) || 1, refC = offDiagonalSpread(homes) || 1;
+    const meter = R.meters(stage, ["variance (per-dim spread)", "off-diagonal spread"]);
 
     const status = () => {
       if (!varT) return { mode: "complete", c: R.C.orange, t: "Complete collapse", d: "Variance term off → nothing stops every embedding sliding to one point." };
@@ -53,6 +56,8 @@ export default function VICRegIsolatorLab() {
       });
       ctx.shadowBlur = 0;
       readout.innerHTML = `<b style="color:${s.c}">${s.t}.</b> ${s.d}`;
+      meter.set(0, Math.round(clamp(spread(pts) / refV, 0, 1) * 100), R.C.orange);
+      meter.set(1, Math.round(clamp(offDiagonalSpread(pts) / refC, 0, 1) * 100), R.C.violet);
       raf = requestAnimationFrame(tick);
     };
 
@@ -68,8 +73,8 @@ export default function VICRegIsolatorLab() {
     mk("inv", "invariance"); mk("var", "variance"); mk("cov", "covariance");
 
     tick();
-    const onR = () => resize(); window.addEventListener("resize", onR);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onR); };
+    const stopRO = R.watchResize(cv, () => resize());
+    return () => { cancelAnimationFrame(raf); stopRO(); };
   }, []);
 
   return (

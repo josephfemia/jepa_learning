@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { LIGHT, ThemeContext, useTheme } from "./theme.js";
 import { SECTIONS, SECTION_CHECK, TIMELINE, MODELS, GLOSSARY, WORLD_MODELS,
-  NAV_GROUPS, PAGES, PAGE_LABEL } from "./data.js";
+  NAV_GROUPS, PAGES, PAGE_LABEL, SOURCES, SOURCE_ORDER, UNITS, LECTURE_META, REVIEW } from "./data.js";
 import { cx, clamp, lerp, scoreQuiz, planCEM } from "./logic.js";
 import NotebooksPage, { pyHighlight } from "./Notebooks.jsx";
 import CollapseLabT from "./labs/CollapseLab.jsx";
@@ -11,6 +11,10 @@ import LatentPlanningLabT from "./labs/LatentPlanningLab.jsx";
 import PixelVsLatentLabT from "./labs/PixelVsLatentLab.jsx";
 import LatentGeometryLab from "./labs/LatentGeometryLab.jsx";
 import MaskingDifficultyLab from "./labs/MaskingDifficultyLab.jsx";
+import EmaLagLab from "./labs/EmaLagLab.jsx";
+import MinOverZLab from "./labs/MinOverZLab.jsx";
+import HJepaHorizonLab from "./labs/HJepaHorizonLab.jsx";
+import ForcesLab from "./labs/ForcesLab.jsx";
 
 /* ============================================================================
    JEPA — An Interactive Course
@@ -269,9 +273,9 @@ function MaskingLab() {
                   <button
                     key={i}
                     onClick={() => toggle(i)}
-                    className="aspect-square rounded-md transition-all duration-300"
+                    className="aspect-square rounded-md transition-all duration-300 flex items-center justify-center overflow-hidden"
                     style={{
-                      background: isMasked ? (predicted ? C.okBg : C.ink3) : bg,
+                      background: isMasked ? C.ink3 : bg,
                       border: isMasked
                         ? `1.5px ${predicted ? "solid" : "dashed"} ${predicted ? C.cyan : C.violet}`
                         : `1px solid ${C.cyan}55`,
@@ -279,8 +283,10 @@ function MaskingLab() {
                       boxShadow: predicted ? `0 0 10px ${C.cyan}66` : "none",
                       transform: phase === "encoding" && !isMasked ? "scale(0.92)" : "none",
                     }}
-                    aria-label={isMasked ? "masked target patch" : "visible context patch"}
-                  />
+                    aria-label={isMasked ? (predicted ? "predicted embedding vector (not pixels)" : "masked target patch") : "visible context patch"}
+                  >
+                    {predicted && <EmbeddingGlyph seed={i} />}
+                  </button>
                 );
               })}
             </div>
@@ -322,12 +328,29 @@ function MaskingLab() {
         {phase === "done" && (
           <div className="mt-5 rounded-xl p-4 text-[14px] leading-relaxed transition-all"
                style={{ background: C.ink3, color: C.text }}>
-            The predictor never drew a single pixel. It predicted the <span style={{color:C.cyan}}>embeddings</span> of
+            Notice the targets didn't get <em>redrawn</em> — each resolves to a little <span style={{color:C.cyan}}>vector glyph</span>, not a patch of pixels.
+            The predictor never drew a single pixel; it predicted the <span style={{color:C.cyan}}>embeddings</span> of
             the hidden patches from the visible ones. That's the whole trick — and why JEPA can ignore
             unpredictable detail while still learning what the scene <em>means</em>.
           </div>
         )}
       </div>
+    </div>
+  );
+}
+/* A tiny "embedding vector" glyph: a few bars of deterministic height — stands in
+   for a predicted representation, so a resolved target reads as a vector, not a redrawn pixel. */
+function EmbeddingGlyph({ seed = 0 }) {
+  const C = useTheme();
+  const bars = Array.from({ length: 5 }, (_, k) => {
+    const h = 28 + ((Math.sin((seed + 1) * (k + 2) * 1.7) * 0.5 + 0.5) * 64); // 28–92%
+    return h;
+  });
+  return (
+    <div className="flex items-end justify-center gap-[2px]" style={{ width: "72%", height: "56%" }} aria-hidden="true">
+      {bars.map((h, k) => (
+        <span key={k} style={{ width: 3, height: `${h}%`, background: C.cyan, opacity: 0.55 + 0.4 * (h / 92), borderRadius: 1 }} />
+      ))}
     </div>
   );
 }
@@ -453,6 +476,8 @@ function Row({ k, v, color }) {
 function DiscoveryTimeline() {
   const C = useTheme();
   const [open, setOpen] = useState(0);
+  const [ideaShown, setIdeaShown] = useState(false);
+  const openNode = (i) => { if (open === i) { setOpen(-1); } else { setOpen(i); setIdeaShown(false); } };
   return (
     <div className="my-8">
       <p className="text-sm mb-5" style={{ color: C.textDim }}>
@@ -470,22 +495,32 @@ function DiscoveryTimeline() {
               {!last && <div className="absolute left-[6px] top-[10px] bottom-0 w-px" style={{ background: C.line }} />}
               <div className="absolute left-0 top-[5px] w-3.5 h-3.5 rounded-full transition-all"
                    style={{ background: active ? ic : C.ink, border: `2px solid ${ic}` }} />
-              <button onClick={() => setOpen(active ? -1 : i)}
+              <button onClick={() => openNode(i)}
                 className="w-full text-left rounded-xl px-4 py-3 transition-all"
                 style={{ background: active ? C.ink2 : "transparent",
                          border: `1px solid ${active ? ic + "66" : "transparent"}` }}>
                 <div className="font-mono text-xs mb-0.5" style={{ color: ic }}>{it.yr}</div>
                 <div className="font-semibold text-[16px]" style={{ color: C.textHi }}>{it.t}</div>
                 <div className="overflow-hidden transition-all duration-400"
-                     style={{ maxHeight: active ? 200 : 0, opacity: active ? 1 : 0 }}>
+                     style={{ maxHeight: active ? 320 : 0, opacity: active ? 1 : 0 }}>
                   <div className="mt-2 text-[14px]" style={{ color: C.textDim }}>
                     <span className="font-mono text-[11px] uppercase tracking-wide" style={{color:C.amber}}>Problem · </span>
                     {it.problem}
                   </div>
-                  <div className="mt-1.5 text-[14px]" style={{ color: C.text }}>
-                    <span className="font-mono text-[11px] uppercase tracking-wide" style={{color:ic}}>Idea · </span>
-                    {it.idea}
-                  </div>
+                  {ideaShown ? (
+                    <div className="mt-1.5 text-[14px]" style={{ color: C.text }}>
+                      <span className="font-mono text-[11px] uppercase tracking-wide" style={{color:ic}}>Idea · </span>
+                      {it.idea}
+                    </div>
+                  ) : (
+                    <span role="button" tabIndex={0}
+                      onClick={(e) => { e.stopPropagation(); setIdeaShown(true); }}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); e.preventDefault(); setIdeaShown(true); } }}
+                      className="inline-block mt-2 font-mono text-[11px] uppercase tracking-wide"
+                      style={{ color: ic, cursor: "pointer", borderBottom: `1px dotted ${ic}` }}>
+                      How would you solve it? ▸ reveal the idea
+                    </span>
+                  )}
                 </div>
               </button>
             </div>
@@ -1015,28 +1050,71 @@ function Section({ id, children }) {
 function CompleteBarPager({ id }) {
   const { go, prevId, nextId, isDone, markPage } = usePage();
   const prev = prevId(id), next = nextId(id), done = isDone(id);
+  const meta = LECTURE_META[id];
   return (
-    <div className="complete-bar">
-      <button className={cx("complete-btn", done && "done")} onClick={() => markPage(id)}>
-        {done ? "Completed ✓" : "Mark complete"}
-      </button>
-      <div className="pager">
-        <button disabled={!prev} onClick={() => prev && go(prev)}>← Prev</button>
-        <button disabled={!next} onClick={() => next && go(next)}>Next →</button>
+    <>
+      {meta?.takeaways && (
+        <div className="callout takeaways">
+          <span className="co-label">Key takeaways</span>
+          <ul>{meta.takeaways.map((t, i) => <li key={i}>{t}</li>)}</ul>
+        </div>
+      )}
+      <div className="complete-bar">
+        <button className={cx("complete-btn", done && "done")} onClick={() => markPage(id)}>
+          {done ? "Completed ✓" : "Mark complete"}
+        </button>
+        <div className="pager">
+          <button disabled={!prev} onClick={() => prev && go(prev)}>← Prev</button>
+          <button disabled={!next} onClick={() => next && go(next)}>Next →</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* The syllabus-style objectives block under each lecture header: a meta-strip
+   (time / difficulty / prereqs), the learning objectives, and primary readings. */
+function LectureObjectives({ id }) {
+  const meta = LECTURE_META[id];
+  if (!meta) return null;
+  return (
+    <div className="lec-meta">
+      <div className="meta-strip">
+        <span className="chip"><b>≈ {meta.minutes} min</b></span>
+        <span className="chip">Difficulty · <b>{meta.difficulty}</b></span>
+        {meta.prereqs?.length > 0 && <span className="chip">Prereqs · {meta.prereqs.join(", ")}</span>}
+      </div>
+      <div className="callout objectives">
+        <span className="co-label">In this lecture you'll</span>
+        <ul>{meta.objectives.map((o, i) => <li key={i}>{o}</li>)}</ul>
+        {meta.readings?.length > 0 && (
+          <div className="readings">
+            <span>Readings:</span>{" "}
+            {meta.readings.map((k, i) => {
+              const s = SOURCES[k]; if (!s) return null;
+              const short = s[0].split(" — ")[1] || s[0];
+              return <React.Fragment key={k}>{i > 0 ? " · " : ""}<a href={s[1]} target="_blank" rel="noreferrer">{short}</a></React.Fragment>;
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-/* Lecture header — the robotic_learning .lecture-head treatment. */
-function Heading({ num, eyebrow, title, intro }) {
+/* Lecture header — the robotic_learning .lecture-head treatment, plus the
+   syllabus objectives block when the section has LECTURE_META. */
+function Heading({ id, num, eyebrow, title, intro }) {
   return (
-    <div className="lecture-head">
-      {num && <span className="ltag">Lecture {num}</span>}
-      {eyebrow && <div className="eyebrow" style={{ marginBottom: 10 }}>{eyebrow}</div>}
-      <h2>{title}</h2>
-      {intro && <p className="dek">{intro}</p>}
-    </div>
+    <>
+      <div className="lecture-head">
+        {num && <span className="ltag">Lecture {num}</span>}
+        {eyebrow && <div className="eyebrow" style={{ marginBottom: 10 }}>{eyebrow}</div>}
+        <h2>{title}</h2>
+        {intro && <p className="dek">{intro}</p>}
+      </div>
+      {id && <LectureObjectives id={id} />}
+    </>
   );
 }
 function P({ children }) {
@@ -1049,6 +1127,17 @@ function H3({ children }) {
 }
 const Hi = ({ children, c }) => { const C = useTheme(); return <span style={{ color: c || C.cyan }}>{children}</span>; };
 const B = ({ children }) => { const C = useTheme(); return <strong style={{ color: C.textHi, fontWeight: 600 }}>{children}</strong>; };
+/* Clickable cross-reference: jumps to another lecture. */
+const Xref = ({ to, children }) => {
+  const { go } = usePage();
+  return (
+    <span className="xref" role="button" tabIndex={0}
+      onClick={() => go(to)}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(to); } }}>
+      {children}
+    </span>
+  );
+};
 
 /* ----------------------------- shell chrome ------------------------------ */
 function Sidebar({ cur, go, isDone, progress, menuOpen }) {
@@ -1128,7 +1217,7 @@ function StartLecture() {
           Start the first lecture →
         </button>
         <span className="font-mono text-[12px] tracking-wide" style={{ color: C.textFaint }}>
-          ~40 min · 10 lectures · interactive throughout
+          ~45–60 min · 11 lectures · interactive throughout
         </span>
       </div>
       <div className="mt-8 flex flex-wrap gap-x-5 gap-y-2 text-[12.5px]" style={{ color: C.textDim }}>
@@ -1139,8 +1228,112 @@ function StartLecture() {
           </span>
         ))}
       </div>
+      <div className="callout" style={{ marginTop: 30 }}>
+        <span className="co-label">What you should already know</span>
+        <P>You've trained a model with <B>gradient descent</B> and have a rough sense of what an <B>embedding</B> is (a vector that describes an input). That's the whole prerequisite.</P>
+        <P style={{ marginBottom: 0 }}>You do <em>not</em> need transformers, energy-based models, or reinforcement learning — we build each one here the first time it's needed. When a term shows up in <B>bold</B>, it's defined right nearby; the full <B>glossary</B> of key terms lives at the end, in <span style={{ color: C.cyan }}>Recap → Key terms</span>.</P>
+      </div>
+      <CourseSyllabus />
       <CompleteBarPager id="start" />
     </section>
+  );
+}
+
+/* The syllabus block on the Start page: the four units, each lecture a jump link
+   with its est. time + difficulty, then the review unit. */
+function CourseSyllabus() {
+  const { go } = usePage();
+  const row = (lid) => {
+    const m = LECTURE_META[lid];
+    return (
+      <button className="syl-lec" key={lid} onClick={() => go(lid)}>
+        <span className="syl-idx">{PAGE_IDX[lid]}</span>
+        <span className="syl-title">{PAGE_LABEL[lid]}</span>
+        <span className="syl-meta">≈{m.minutes}m · {m.difficulty}</span>
+      </button>
+    );
+  };
+  return (
+    <div className="syllabus">
+      <h3>Syllabus</h3>
+      <p className="syl-sub">Eleven lectures across four units, then a graded final review. Jump in anywhere.</p>
+      {UNITS.map((u) => (
+        <div className="unit" key={u.roman}>
+          <div className="unit-head">
+            <span className="unit-roman">{u.roman}</span>
+            <div><h4>Unit {u.roman} · {u.title}</h4><p>{u.blurb}</p></div>
+          </div>
+          <div className="unit-lectures">{u.lectures.map(row)}</div>
+        </div>
+      ))}
+      <div className="unit">
+        <div className="unit-head">
+          <span className="unit-roman">★</span>
+          <div><h4>Review · Lock it in</h4><p>Recap the whole arc, then take the graded final review covering every lecture.</p></div>
+        </div>
+        <div className="unit-lectures">{row("recap")}</div>
+      </div>
+    </div>
+  );
+}
+
+/* Final review — a graded, shuffled deck aggregating one core question per
+   lecture (true spaced retrieval across the whole course). */
+function ReviewDeck() {
+  const C = useTheme();
+  const { go } = usePage();
+  const [order, setOrder] = useState(() => REVIEW.map((_, i) => i));
+  const [i, setI] = useState(0);
+  const [picked, setPicked] = useState(null);
+  const [score, setScore] = useState(0);
+  const [answered, setAnswered] = useState(0);
+
+  const shuffle = () => {
+    // deterministic-ish shuffle seeded by current counts (no Math.random dependency for SSR safety)
+    const a = REVIEW.map((_, k) => k);
+    for (let k = a.length - 1; k > 0; k--) { const j = (k * 7 + 3) % (k + 1); [a[k], a[j]] = [a[j], a[k]]; }
+    setOrder(a); setI(0); setPicked(null); setScore(0); setAnswered(0);
+  };
+  const q = REVIEW[order[i]];
+  const done = answered === REVIEW.length;
+
+  const choose = (oi) => {
+    if (picked != null) return;
+    setPicked(oi);
+    if (oi === q.correct) setScore((s) => s + 1);
+    setAnswered((n) => n + 1);
+  };
+  const next = () => { setPicked(null); setI((v) => (v + 1) % REVIEW.length); };
+
+  return (
+    <div className="review-deck">
+      <div className="rd-head">
+        <span className="rd-title">Final review · all lectures</span>
+        <span className="rd-score">{score} / {answered} correct{done ? " · complete" : ""}</span>
+      </div>
+      <div className="rd-body">
+        <span className="rd-tag">{PAGE_LABEL[q.id]}</span>
+        <p className="rd-q">{q.q}</p>
+        {q.options.map((opt, oi) => {
+          const cls = picked == null ? "rd-opt"
+            : oi === q.correct ? "rd-opt right"
+            : oi === picked ? "rd-opt wrong" : "rd-opt";
+          return (
+            <button key={oi} className={cls} disabled={picked != null} onClick={() => choose(oi)}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: C.textDim, marginRight: 9 }}>{String.fromCharCode(65 + oi)}</span>
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+      <div className="rd-foot">
+        <span>Card {i + 1} of {REVIEW.length}</span>
+        <span style={{ flex: 1 }} />
+        {picked != null && <button className="lab-btn primary" onClick={next}>Next card →</button>}
+        <button className="lab-btn" onClick={shuffle}>↻ Shuffle &amp; restart</button>
+        <button className="lab-btn" onClick={() => go(q.id)}>Review this lecture</button>
+      </div>
+    </div>
   );
 }
 
@@ -1148,21 +1341,7 @@ function SourcesFooter() {
   const C = useTheme();
   const { cur } = usePage();
   if (cur !== "recap" && cur !== "start") return null;   // sources only on the bookend pages
-  const sources = [
-    ["van den Oord et al. — Contrastive Predictive Coding (2018)", "https://arxiv.org/abs/1807.03748"],
-    ["Ha & Schmidhuber — World Models (2018)", "https://arxiv.org/abs/1803.10122"],
-    ["Grill et al. — BYOL (2020)", "https://arxiv.org/abs/2006.07733"],
-    ["Chen & He — SimSiam (2021)", "https://arxiv.org/abs/2011.10566"],
-    ["Bardes, Ponce & LeCun — VICReg (2022)", "https://arxiv.org/abs/2105.04906"],
-    ["LeCun — A Path Towards Autonomous Machine Intelligence (2022)", "https://openreview.net/pdf?id=BZ5a1r-kVsf"],
-    ["Assran et al. — I-JEPA, CVPR (2023)", "https://arxiv.org/abs/2301.08243"],
-    ["Bardes et al. — V-JEPA (2024)", "https://arxiv.org/abs/2404.08471"],
-    ["Zhou et al. — DINO-WM (2024)", "https://arxiv.org/abs/2411.04983"],
-    ["Sobal et al. — PLDM / latent planning (2025)", "https://arxiv.org/abs/2502.14819"],
-    ["Assran, Ballas et al. — V-JEPA 2 (2025)", "https://arxiv.org/abs/2506.09985"],
-    ["Balestriero & LeCun — LeJEPA (2025)", "https://arxiv.org/abs/2511.08544"],
-    ["Maes, …, LeCun & Balestriero — LeWorldModel (2026)", "https://arxiv.org/abs/2603.19312"],
-  ];
+  const sources = SOURCE_ORDER.map((k) => SOURCES[k]);   // shared with per-lecture readings
   return (
     <footer style={{ borderTop: `1px solid ${C.line}`, marginTop: 56, paddingTop: 28 }}>
       <h4 className="font-semibold text-[16px] mb-3" style={{ color: C.textHi, fontFamily: "var(--font-display)" }}>Primary sources</h4>
@@ -1228,7 +1407,7 @@ function CourseBody() {
 
         {/* ---------------- 01 THE IDEA ---------------- */}
         <Section id="idea">
-          <Heading num="01" eyebrow="The core idea"
+          <Heading id="idea" num="01" eyebrow="The core idea"
             title={<>A model that predicts what it <Hi>means</Hi>, not what it looks like</>}
             intro="Every modern self-supervised model hides part of its input and predicts the missing part. JEPA's one consequential twist is where that prediction happens." />
           <Reveal>
@@ -1238,10 +1417,23 @@ function CourseBody() {
           </Reveal>
           <Reveal>
             <div>
+              <P><span style={{color:C.textDim}}>First, the setup both families share. <B>Self-supervised learning</B> means there are <em>no human labels</em> — the data supplies its own answer by hiding part of itself and asking the model to fill it back in. That's the only way to learn from a billion video frames nobody will ever annotate. The question this whole course turns on is just: <em>fill it back in — where?</em></span></P>
               <P>Picture a short video of a ball rolling toward the edge of a table. A <B>generative</B> model — the family behind most headline AI — learns by reconstructing the exact missing pixels: every shadow, every reflection, the grain of the wood. To do that it must commit to one precise future, down to detail it can't possibly know.</P>
               <P>A JEPA asks a different question. Not <em>"what will the next frame look like, pixel for pixel?"</em> but <em>"what will it <Hi>mean</Hi>?"</em> It encodes the visible part, encodes the hidden part, and trains a small <B>predictor</B> to jump from one to the other — entirely inside an abstract space. The ball will be roughly <Hi>there</Hi>, moving <Hi>that way</Hi>, about to fall. The wood grain is discarded as noise.</P>
             </div>
           </Reveal>
+
+          <GuessGate
+            onResolved={() => mark("g1")}
+            question="A model watches that ball roll toward the table edge. To learn well about the next instant, what should it work hardest to get right?"
+            options={[
+              "Every pixel — shadows, reflections, the grain of the wood",
+              "Roughly where the ball is and that it's about to fall — the gist",
+              "The exact RGB value of the ball's center pixel",
+            ]}
+            correct={1}
+            explanation={<>Hold that thought. The "gist" is what's both <Hi>predictable</Hi> and useful; the exact pixels are mostly detail no model can guess. Which of those a model is <em>graded</em> on turns out to be the whole story — the aside below names it.</>}
+          />
 
           <Reveal>
             <Instructor>
@@ -1280,16 +1472,34 @@ function CourseBody() {
 
         {/* ---------------- 02 WHY LATENT ---------------- */}
         <Section id="why">
-          <Heading num="02" eyebrow="Why it matters"
+          <Heading id="why" num="02" eyebrow="Why it matters"
             title={<>The world isn't fully predictable — so stop trying to predict all of it</>} />
           <Reveal>
             <div>
-              <P>LeCun's critique of generative pretraining is precise. Forcing a model to reconstruct raw inputs charges it a tax on every pixel, with two costs: <B>wasted capacity on the unpredictable</B> (it's punished for failing to guess things that can't be guessed) and <B>obsession with low-level features</B> (it memorizes texture and lighting instead of semantic structure).</P>
-              <P>Predicting in representation space defuses both. The target is itself a <Hi>learned</Hi> embedding, so the encoder can make it abstract and smooth — encode "a ball, here, falling" and drop the rest. See it for yourself:</P>
+              <P>LeCun's critique of generative pretraining starts from a plain observation: forcing a model to reconstruct raw inputs charges it a tax on <em>every pixel</em> — and much of any real scene (falling snow, TV static, the froth on a wave) is detail no model could ever guess. Before we name what that costs, predict it:</P>
             </div>
           </Reveal>
 
+          <GuessGate
+            onResolved={() => mark("g-why")}
+            question="You force a model to reconstruct every pixel of a video of TV static. Where does most of its effort go?"
+            options={[
+              "Into the meaningful structure of the scene",
+              "Into chasing unpredictable noise it can never get right",
+              "It automatically learns to ignore the static",
+            ]}
+            correct={1}
+            explanation={<>Exactly — and that's the trap. Watch the two costs separate as you turn the detail up:</>}
+          />
+
           <PixelVsLatentLabT />
+
+          <Reveal>
+            <div>
+              <P>There it is — the <Hi>reconstruction tax</Hi>, in two parts: <B>wasted capacity on the unpredictable</B> (the model is punished for failing to guess things that can't be guessed) and <B>obsession with low-level features</B> (it spends itself memorizing texture and lighting instead of semantic structure).</P>
+              <P>Predicting in representation space defuses both. Here's the subtle part that makes it work: because the target is itself a <Hi>learned</Hi> embedding — produced by the same kind of encoder you're training — the model gets to <em>decide what "matching the target" even means</em>. It can settle on a target representation that omits the wood grain entirely, and then it is no longer penalized for failing to predict it. With a fixed <em>pixel</em> target you have no such freedom: the grain is in the answer key whether you can predict it or not. So the encoder keeps what's predictable and meaningful — "a ball, here, falling" — and drops the rest.</P>
+            </div>
+          </Reveal>
 
           <Reveal>
             <div>
@@ -1310,7 +1520,7 @@ function CourseBody() {
               <span style={{ color: C.textFaint }}># encoder can't cheat by collapsing every input to one point</span><br/>
               ℒ = E(x, y) &nbsp;+&nbsp; <Hi c={C.amber}>λ · R</Hi>( <Hi>Enc</Hi>(x), <Hi>Enc</Hi>(y) )
             </div>
-            <P><span style={{color:C.textDim}}>The latent variable <Hi c={C.violet}>z</Hi> captures the information about <em>y</em> not present in <em>x</em> — one context can have many valid futures, and varying <Hi c={C.violet}>z</Hi> sweeps them out. (Keep an eye on <Hi c={C.violet}>z</Hi> — when we reach planning, this very variable becomes the robot's <em>action</em>.) That last term <Hi c={C.amber}>R</Hi> is doing more work than it looks: it's the whole subject of the next section.</span></P>
+            <P><span style={{color:C.textDim}}>The latent variable <Hi c={C.violet}>z</Hi> captures the information about <em>y</em> not present in <em>x</em> — one context can have many valid futures, and varying <Hi c={C.violet}>z</Hi> sweeps them out. Concretely: the context is "ball rolling toward the edge." The future isn't determined — it could fall <em>left</em> or <em>right</em>. <Hi c={C.violet}>z</Hi> is the knob that selects which; the context fixes everything except <Hi c={C.violet}>z</Hi>. (You don't supply <Hi c={C.violet}>z</Hi> by hand — the <em>min over z</em> you'll see later means the optimizer tries settings of <Hi c={C.violet}>z</Hi> and keeps the one that best explains the actual target.) Keep an eye on it — when we reach planning, this very variable becomes the robot's <em>action</em>. That last term <Hi c={C.amber}>R</Hi> is doing more work than it looks: it's the whole subject of the next section.</span></P>
           </Reveal>
 
           <Reveal>
@@ -1330,16 +1540,35 @@ function CourseBody() {
                 "    return loss + lam * regularizer(sx, sy)  # + anti-collapse term",
               ]} />
             <div>
-              <P>Look at what's <em>not</em> there. There's no decoder. There's no pixel anywhere in the loss. Line 7 is the only "prediction" and it outputs a vector of numbers, not an image. Line 8 compares two vectors. If you delete line 9 — the regularizer — the cheapest way to make line 8 zero is to make <Hi>every</Hi> embedding identical, and the whole thing quietly dies. That single line is why the next section exists.</P>
+              <P>Look at what's <em>not</em> there. There's no decoder. There's no pixel anywhere in the loss. Line 7 is the only "prediction" and it outputs a vector of numbers, not an image. Line 8 compares two vectors. And line 9 — the regularizer — is load-bearing in a way that isn't obvious yet: delete it and there's a degenerate shortcut that drives line 8's loss straight to zero while the model learns <em>nothing</em>. Spotting that shortcut, and the trick that kills it, is the entire next section.</P>
+              <P><span style={{color:C.textDim}}>(One unfamiliar line: <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>stop_gradient</code> on line 5 just means "during backprop, treat these numbers as constants" — no gradient flows back into the teacher encoder. Why that matters is the whole next section; for now, read it as "the teacher doesn't learn from this step.")</span></P>
             </div>
           </Reveal>
         </Section>
 
         {/* ---------------- 03 ARCHITECTURE ---------------- */}
         <Section id="build">
-          <Heading num="03" eyebrow="The architecture"
+          <Heading id="build" num="03" eyebrow="The architecture"
             title={<>Three networks, one deliberate asymmetry</>}
             intro="Every concrete JEPA is built from the same three pieces. Build the forward pass yourself and the structure stops being abstract." />
+          <Reveal>
+            <Instructor label="first — what's a Vision Transformer?">
+              <p className="mb-2">Every diagram and lab below rests on one building block, so let's pin it down. A <B>Vision Transformer (ViT)</B> chops an image into a grid of small square <Hi>patches</Hi> — say 14×14 pixels each — turns every patch into a vector (a "token"), and processes the set the way a language transformer processes words.</p>
+              <p>You don't need the internals. Just hold one picture: <B>image → grid of patch-tokens → one vector per patch</B> (or one summary vector for the whole image). So when the next sections say "encode the visible patches," they mean: run the ViT on just the patches we didn't hide, and read off their vectors. That's the entire prerequisite.</p>
+            </Instructor>
+          </Reveal>
+          <GuessGate
+            onResolved={() => mark("g-build")}
+            question="The predictor needs targets to chase. Why not just use a second copy of the same trainable encoder to produce them?"
+            options={[
+              "No reason — an identical trainable encoder for the targets works fine",
+              "The two encoders could collude — drift together until every embedding is identical and the loss is trivially zero",
+              "It would simply be too slow to run two identical networks",
+            ]}
+            correct={1}
+            explanation={<>That's the collapse loophole sneaking in early. To shut it, the target branch is made deliberately <em>different</em> — a stop-gradient, and a slow-moving copy of the student's weights. The lopsidedness you're about to see in the diagram <em>is</em> that fix.</>}
+          />
+
           <Reveal><ArchitectureDiagram /></Reveal>
           <MaskingLab />
           <Reveal>
@@ -1348,7 +1577,10 @@ function CourseBody() {
               <P>The network you keep. It maps the visible input to a representation <Hi>sx</Hi> and learns by backpropagation. In every published JEPA it's a Vision Transformer. After training, this is your feature extractor.</P>
               <H3>2 · Target encoder (the teacher)</H3>
               <P>Encodes the <Hi c={C.violet}>full</Hi> input to produce the targets the predictor chases — but it's <B>not trained directly</B>. Its weights are an exponential moving average of the student's, with a <B>stop-gradient</B> blocking learning signal. Why? Because if the targets are learned too, the model could win by making every representation identical. The slow, gradient-free teacher gives stable targets the student can't trivially game.</P>
-              <P><span style={{color:C.textDim}}>Worth separating two ideas that often get blurred: the <B>stop-gradient</B> is what breaks the learning-signal symmetry (the actual anti-collapse lever), while the <B>EMA</B> just makes the teacher a slow-moving copy. BYOL later showed a plain momentum encoder can stand in for EMA — evidence that the asymmetry, not EMA specifically, is doing the work. Concretely the EMA keeps ~99.6% of the teacher's weights each step and absorbs ~0.4% of the student's (τ ≈ 0.996) — slow on purpose, so the two encoders can't move in lockstep and collude.</span></P>
+              <P><span style={{color:C.textDim}}>Worth separating two ideas that often get blurred: the <B>stop-gradient</B> breaks the learning-signal symmetry, while the <B>EMA</B> just makes the teacher a slow-moving copy. <B>SimSiam</B> later showed you can drop the EMA/momentum encoder <em>entirely</em> and still avoid collapse with just a stop-gradient and a predictor head — evidence that the <em>asymmetry</em>, more than the EMA, is doing the work (though exactly <em>why</em> a stop-gradient prevents collapse is still not fully settled). Concretely the EMA keeps ~99.6% of the teacher's weights each step and absorbs ~0.4% of the student's (τ ≈ 0.996) — slow on purpose, so the two encoders can't move in lockstep and collude.</span></P>
+            </div>
+            <EmaLagLab />
+            <div>
               <H3>3 · Predictor (the bridge)</H3>
               <P>A narrow network that takes <Hi>sx</Hi> plus the <B>position of the target</B> and outputs a predicted embedding. In video and robotics it also takes the latent <Hi c={C.violet}>z</Hi> or an action — "if I do this, the representation moves like so." This is the module that becomes a <B>world model</B>.</P>
             </div>
@@ -1360,29 +1592,39 @@ function CourseBody() {
 
         {/* ---------------- 04 COLLAPSE ---------------- */}
         <Section id="collapse">
-          <Heading num="04" eyebrow="The central problem"
+          <Heading id="collapse" num="04" eyebrow="The central problem"
             title={<>If you grade yourself on predicting your own targets, cheating is easy</>}
             intro="This failure mode defines JEPA research. Understand it and every design choice in the family suddenly makes sense." />
           <Reveal>
             <div>
-              <P>The danger is built in. If the model is scored on predicting its own learned embeddings, there's a shortcut: <B>make all embeddings identical</B>. Error drops to zero; the representation learns nothing. This is <Hi>representation collapse</Hi>, and it comes in two flavors — <B>complete</B> (everything maps to one point) and <B>dimensional</B> (embeddings squeeze into a tiny subspace).</P>
+              <P>The danger is built in. A JEPA is scored on predicting its <em>own</em> learned embeddings — the targets <Hi>sy</Hi> come from a network we are also training. That self-referential setup leaves a loophole a lazy optimizer will find instantly. Before we name it, predict it:</P>
             </div>
           </Reveal>
 
+          <GuessGate
+            onResolved={() => mark("g2")}
+            question="A JEPA is graded on predicting its own learned targets. What's the laziest way for the encoder to drive that loss to zero?"
+            options={[
+              "Predict each target as accurately as possible",
+              "Map every input to the same embedding, so prediction is trivial",
+              "Use a bigger, more powerful predictor",
+            ]}
+            correct={1}
+            explanation={<>That's <Hi>representation collapse</Hi>: if every embedding is the same vector, "predict sy from sx" is solved by emitting that one vector forever. Loss → 0, knowledge → 0. Now make it happen — and watch the defenses stop it:</>}
+          />
+
+          <CollapseLabT />
+
           <Reveal>
-            <Instructor label="here's the catch nobody mentions">
-              <p className="mb-2">Remember line 9 from our code? Here's the thing I want you to really feel, because it's the single most important intuition in this whole topic.</p>
-              <p className="mb-2">When you train a normal model, you and the model want the same thing — low loss means good predictions. But a JEPA <em>writes its own exam</em>: the targets <Hi>sy</Hi> are produced by a network we're also training. So the model figures out a nasty shortcut a student would love — <B>make the exam trivial.</B> If every embedding is the same vector, then "predict sy from sx" is perfectly solvable by outputting that one vector, forever. Loss → 0. Knowledge → 0.</p>
-              <p>So almost everything that looks like a weird design choice in JEPA — the frozen teacher, the moving-average weights, the extra regularizer term — exists for <Hi>one reason</Hi>: stop the model from cheating its own test. Play with the toggles below and watch the cheating happen (and get prevented) in real time.</p>
+            <Instructor label="why this one shortcut explains the whole family">
+              <p className="mb-2">Here's the intuition worth keeping. When you train a normal model, you and it want the same thing — low loss means good predictions. But a JEPA <em>writes its own exam</em>: the targets are produced by a network we're also training. So it can do what any student would love — <B>make the exam trivial.</B></p>
+              <p>That's why almost everything that looks like a weird design choice — the frozen teacher, the moving-average weights, the extra regularizer term — exists for <Hi>one reason</Hi>: stop the model from cheating its own test. And the cheat has two shapes, both of which you just produced. <B>Complete</B> collapse maps every input to one point. The sneakier <B>dimensional</B> collapse is subtler: picture a 1024-number embedding where 1000 of the numbers barely move from input to input — the vectors aren't identical, so it <em>looks</em> healthy, but the model is really using only a handful of dimensions and has thrown away almost all its capacity.</p>
             </Instructor>
           </Reveal>
 
-          <CollapseLabT />
           <Reveal>
-            <Aside tag="The 2025 punchline" color={C.cyan}>
-              LeJEPA later <em style={{ color: C.cyan, fontStyle: "normal" }}>proved</em> that the ideal embedding distribution is an isotropic
-              Gaussian and enforced it with one regularizer (SIGReg) — removing the need for EMA, stop-gradient,
-              and teacher–student tricks entirely. The defenses you just toggled became a single principled term.
+            <Aside tag="Hold this thought" color={C.cyan}>
+              The defenses you just toggled were the state of the art for <em>years</em> — a bag of tricks, each patching a different way to cheat. In 2025 a single result proved you could replace the whole bag with <Hi>one</Hi> principled term. We'll earn exactly how in Lecture 06.
             </Aside>
           </Reveal>
 
@@ -1405,16 +1647,29 @@ function CourseBody() {
           </Reveal>
         </Section>
 
-        {/* ---------------- 04b UNDER THE HOOD ---------------- */}
+        {/* ---------------- 05 UNDER THE HOOD ---------------- */}
         <Section id="depth">
-          <Heading num="04½" eyebrow="Under the hood"
+          <Heading id="depth" num="05" eyebrow="Under the hood"
             title={<>The math and mechanics a researcher actually needs</>}
             intro="You have the intuition. Now the rigor — the energy formulation, the two ways to train it, the real loss functions, the masking algorithm, and how any of this gets evaluated. This is the section that separates 'I get the idea' from 'I could implement it.'" />
+
+          <GuessGate
+            onResolved={() => mark("r-depth")}
+            tag="Recall" hint="pull it from memory before the math starts" accent={C.cyan}
+            question="Before the rigor — in one line, what makes an energy landscape useless?"
+            options={[
+              "Energy is high everywhere",
+              "Energy is low everywhere — not reserved for compatible pairs",
+              "The energy is exactly zero for the single correct answer",
+            ]}
+            correct={1}
+            explanation={<>That's collapse, restated in energy terms. Everything below is one job: shape the landscape so <em>low energy stays rare</em>.</>}
+          />
 
           <Reveal>
             <div>
               <H3>JEPA as an energy-based model, precisely</H3>
-              <P>Strip away the diagrams and a JEPA is an <B>energy-based model</B> (EBM). An EBM doesn't output a probability — it outputs a scalar <Hi>energy</Hi> <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>E(x, y)</code> that should be low when <em>x</em> and <em>y</em> are compatible and high when they aren't. The appeal: you never have to normalize over all possible <em>y</em> (the partition function that makes high-dimensional generative models intractable). You only have to <Hi>shape the landscape</Hi> so the right answers sit in the valleys.</P>
+              <P>You met the energy view informally in <Xref to="why">§02</Xref> — low energy = compatible, no normalization. Here's the precise version. A JEPA is an <B>energy-based model</B> (EBM): a scalar <Hi>energy</Hi> <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>E(x, y)</code>, low when <em>x</em> and <em>y</em> are compatible. The one piece §02 glossed: the energy carries a <em>latent variable</em>, and minimizing over it is what lets a single context explain many futures. That's the formalization that matters.</P>
               <P>For a JEPA the energy is the prediction error <em>between learned representations</em>, with a latent variable <code style={{color:C.violet,background:C.ink3,padding:"1px 5px",borderRadius:4}}>z</code> absorbing the part of <em>y</em> that <em>x</em> can't determine:</P>
             </div>
             <div className="my-6 rounded-xl border p-5 font-mono text-[14px] leading-[1.9] overflow-x-auto"
@@ -1424,23 +1679,37 @@ function CourseBody() {
               <span style={{ color: C.textFaint }}># minimizing over z = "pick the explanation of y that fits best"</span><br/>
               <span style={{ color: C.textFaint }}># this is what lets ONE context have MANY valid futures</span>
             </div>
+            <MinOverZLab />
             <div>
               <P>The deep problem: an EBM is only useful if low energy is <Hi>rare</Hi> — reserved for compatible pairs. If energy is low <em>everywhere</em>, the model knows nothing. That's collapse, stated in EBM terms. There are exactly two ways to prevent it, and the entire field splits along this line.</P>
             </div>
           </Reveal>
 
+          <GuessGate
+            question="One way to keep low energy rare is to push energy UP at sampled wrong answers (negatives). Why does that get hard as embeddings get high-dimensional?"
+            options={[
+              "It doesn't — more dimensions make covering the space easier",
+              "You'd need an exponential number of negatives to cover the space, so most of it stays un-pushed",
+              "High-dimensional vectors can't be subtracted on a GPU",
+            ]}
+            correct={1}
+            explanation={<>Right — the curse of dimensionality. So the other camp never samples at all: it constrains the <Hi>statistics</Hi> of the embeddings so the low-energy region simply can't spread. Flip between the two below.</>}
+          />
+
           <Reveal>
             <H3>The two ways to shape an energy landscape</H3>
             <EnergyLandscapeLab />
             <div>
-              <P>LeCun's argument for JEPA leans hard on the second column. Contrastive methods need to push up energy at <em>sampled</em> negative points, and in high dimensions you'd need an exponential number of negatives to cover the space — the curse of dimensionality. Regularized methods sidestep sampling entirely: they constrain the <Hi>statistics</Hi> of the embeddings so the low-energy region simply can't expand to fill space. This is why JEPA's lineage runs through VICReg and SIGReg, not InfoNCE.</P>
+              <P>LeCun's argument for JEPA leans hard on the second column. Contrastive methods need to push up energy at <em>sampled</em> negative points, and in high dimensions you'd need an exponential number of negatives to cover the space — the curse of dimensionality. Regularized methods sidestep sampling entirely: they constrain the <Hi>statistics</Hi> of the embeddings so the low-energy region simply can't expand to fill space. This is why JEPA's lineage runs through VICReg and SIGReg, not InfoNCE <span style={{color:C.textDim}}>(InfoNCE being the standard contrastive loss — the one that needs all those negatives)</span>.</P>
             </div>
+            <ForcesLab />
           </Reveal>
 
           <Reveal>
             <div>
               <H3>VICReg, for real — the three terms in code</H3>
-              <P>Earlier you toggled "variance–covariance regularization" as a black box. Here is what those words actually compute. Given a batch of embeddings <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>Z</code> (N samples × D dims), VICReg is three terms. The coefficients <Hi>λ=μ=25, ν=1</Hi> are the paper's ImageNet values — not universal constants; they're tuned per dataset, batch size, and embedding dimension:</P>
+              <P>Earlier you toggled "variance–covariance regularization" as a black box. Here is what those words actually compute. Given a batch of embeddings <code style={{color:C.cyan,background:C.ink3,padding:"1px 5px",borderRadius:4}}>Z</code> (N samples × D dims), VICReg is three terms. The coefficients <Hi>λ=μ=25, ν=1</Hi> are the paper's ImageNet values — not universal constants; they're tuned per dataset, batch size, and embedding dimension (the paper's design rule is λ=μ with ν smaller, not arbitrary):</P>
+              <P><span style={{color:C.textDim}}>One term below builds a <B>covariance matrix</B> — if that's unfamiliar, picture a D×D grid where entry (i, j) measures whether dimension i and dimension j move <em>together</em> across the batch. The diagonal is each dimension's own spread (the variance term handles that); the off-diagonals are <em>redundancy</em> between dimensions. We want the off-diagonals at zero, so every dimension carries something the others don't.</span></P>
             </div>
             <CodeBlock title="vicreg.py — the loss that prevents collapse without negatives"
               lines={[
@@ -1449,12 +1718,10 @@ function CourseBody() {
                 "    inv = mse(Z, Z2)",
                 "",
                 "    # 2. VARIANCE — hinge: keep each dim's std above gamma (=1)",
-                "    #    this is the term that kills COMPLETE collapse",
                 "    std = sqrt(Z.var(dim=0) + 1e-4)",
                 "    var = mean(relu(gamma - std))",
                 "",
                 "    # 3. COVARIANCE — push off-diagonal correlations to zero",
-                "    #    this is the term that kills DIMENSIONAL collapse",
                 "    Zc = Z - Z.mean(dim=0)",
                 "    cov = (Zc.T @ Zc) / (N - 1)",
                 "    cov_loss = off_diagonal(cov).pow(2).sum() / D",
@@ -1466,6 +1733,16 @@ function CourseBody() {
             </div>
           </Reveal>
 
+          <GuessGate
+            question="You delete the variance term (#2) and keep the other two. Which collapse comes back?"
+            options={[
+              "Complete — the whole cloud caves onto a single point",
+              "Dimensional — the cloud flattens onto a thin line or plane",
+              "Neither — the covariance term covers for it",
+            ]}
+            correct={0}
+            explanation={<>Variance guards each dimension's <em>spread</em>, so without it nothing stops everything piling onto one point. Covariance guards the <em>off-diagonals</em> — kill that instead and you get dimensional collapse. Turn each one off below and confirm which failure you summoned.</>}
+          />
           <Reveal>
             <P>Don't take the three terms on faith — turn each one off and watch the space die in exactly the way it was preventing:</P>
             <VICRegIsolatorLab />
@@ -1484,9 +1761,9 @@ function CourseBody() {
 
         </Section>
 
-        {/* ---------------- 04¾ FRONTIER & EVAL ---------------- */}
+        {/* ---------------- 06 FRONTIER & EVAL ---------------- */}
         <Section id="depth2">
-          <Heading num="04¾" eyebrow="The frontier & how it's measured"
+          <Heading id="depth2" num="06" eyebrow="The frontier & how it's measured"
             title={<>The provable rewrite — and how you judge a representation at all</>}
             intro="You have the energy view and the regularizers that prevent collapse. Two things finish the picture: SIGReg, the 2025 result that replaced the whole toolkit, and the protocols researchers actually use to measure whether a learned representation is any good." />
           <Reveal>
@@ -1512,7 +1789,7 @@ function CourseBody() {
           <Reveal>
             <div>
               <H3>How do you even evaluate a representation?</H3>
-              <P>A researcher's reflexive question. Since JEPA produces embeddings, not labels or pixels, you measure quality by how useful the <Hi>frozen</Hi> features are downstream. The standard protocols, in increasing permissiveness:</P>
+              <P>A researcher's reflexive question. Since JEPA produces embeddings, not labels or pixels, you measure quality by how useful the <Hi>frozen</Hi> features are downstream. The logic behind every protocol below: <em>if a dumb readout — a single linear layer, or even a nearest-neighbor lookup — can recover the labels straight off the frozen embeddings, then the embeddings already encode the meaning.</em> The hard work happened during self-supervised training. The standard protocols, in increasing permissiveness:</P>
               <ul className="my-4 space-y-2.5">
                 <li className="text-[15px] pl-5 relative" style={{ color: C.text }}><span className="absolute left-0" style={{color:C.cyan}}>›</span><B>Linear probing</B> — freeze the backbone, train only a linear classifier on top. The cleanest test of "is the information linearly accessible?" This is the headline I-JEPA number (e.g. ViT-H/14 on ImageNet).</li>
                 <li className="text-[15px] pl-5 relative" style={{ color: C.text }}><span className="absolute left-0" style={{color:C.cyan}}>›</span><B>Attentive / k-NN probing</B> — a small attention head or nearest-neighbor lookup; tests information that's present but not linearly separable.</li>
@@ -1528,9 +1805,9 @@ function CourseBody() {
           <Reveal><MathAppendix /></Reveal>
         </Section>
 
-        {/* ---------------- 05 COMPARE ---------------- */}
+        {/* ---------------- 07 COMPARE ---------------- */}
         <Section id="compare">
-          <Heading num="05" eyebrow="Versus everything else"
+          <Heading id="compare" num="07" eyebrow="Versus everything else"
             title={<>Generative, contrastive, JEPA — what each really optimizes</>}
             intro="Tap through the three families. The thing to watch is where each one computes its loss." />
           <GuessGate
@@ -1543,8 +1820,14 @@ function CourseBody() {
               "It can't run on a GPU efficiently",
             ]}
             correct={0}
-            explanation={<>That's the <Hi>reconstruction tax</Hi> from §02. A JEPA moves the loss into embedding space, so the encoder is free to discard detail it can't predict.</>}
+            explanation={<>That's the <Hi>reconstruction tax</Hi> from <Xref to="why">§02</Xref>. A JEPA moves the loss into embedding space, so the encoder is free to discard detail it can't predict.</>}
           />
+          <Reveal>
+            <Instructor label="quick vocabulary: negatives & augmentations">
+              <p className="mb-2">The middle column needs two words defined, or its weakness won't read as a weakness. <B>Contrastive</B> learning works with <em>pairs</em>: a <Hi>positive</Hi> pair is two altered views of the <em>same</em> image (crop it, recolor it — those distortions are the <Hi>augmentations</Hi>) that should land <em>near</em> each other; the <Hi>negatives</Hi> are other, unrelated images that should land <em>far</em> apart.</p>
+              <p>To have enough negatives on hand you need big batches, and someone has to hand-design the augmentations. That's the whole apparatus JEPA throws away — "no negatives" means it never needs that pile of contrasting examples at all. Keep that in mind as you tap the contrastive panel.</p>
+            </Instructor>
+          </Reveal>
           <ApproachCompare />
           <Reveal>
             <div>
@@ -1593,11 +1876,14 @@ function CourseBody() {
           </Reveal>
         </Section>
 
-        {/* ---------------- 06 HISTORY ---------------- */}
+        {/* ---------------- 08 HISTORY ---------------- */}
         <Section id="history">
-          <Heading num="06" eyebrow="How it came to be"
+          <Heading id="history" num="08" eyebrow="How it came to be"
             title={<>A lineage that makes JEPA feel inevitable</>}
             intro="Four threads LeCun pulled on for decades — energy-based models, Siamese networks, self-supervised learning, and predictive world models — converge here." />
+          <Reveal>
+            <P>Those open questions you just saw weren't obvious from the start — they surfaced one fix at a time. So before the frontier, the lineage that exposed them: how each idea became almost <em>inevitable</em> given the problem the one before it left behind.</P>
+          </Reveal>
           <GuessGate
             onResolved={() => mark("r-history")}
             tag="Recall" hint="pull it from memory — retrieval beats re-reading" accent={C.cyan}
@@ -1608,7 +1894,7 @@ function CourseBody() {
               "Adding more attention heads",
             ]}
             correct={1}
-            explanation={<><Hi>Representation collapse</Hi> (§04). Preventing it — EMA + stop-gradient, then variance/covariance and later SIGReg — is what most of this history is reacting to.</>}
+            explanation={<><Hi>Representation collapse</Hi> (<Xref to="collapse">§04</Xref>). Preventing it — EMA + stop-gradient, then variance/covariance and later SIGReg — is what most of this history is reacting to.</>}
           />
           <DiscoveryTimeline />
           <Reveal>
@@ -1619,11 +1905,12 @@ function CourseBody() {
             </div>
           </Reveal>
           <Reveal><HJepaDiagram /></Reveal>
+          <HJepaHorizonLab />
         </Section>
 
-        {/* ---------------- 07 MODELS ---------------- */}
+        {/* ---------------- 09 MODELS ---------------- */}
         <Section id="models">
-          <Heading num="07" eyebrow="The family, in depth"
+          <Heading id="models" num="09" eyebrow="The family, in depth"
             title={<>From one image to a robot planning in a lab it's never seen</>}
             intro="Each model takes the same core idea into a new domain or fixes a known weakness. Explore what actually changed each time." />
           <Reveal>
@@ -1641,23 +1928,6 @@ function CourseBody() {
           </Reveal>
           <ModelExplorer />
           <Reveal><TwoStageTraining /></Reveal>
-          <Reveal>
-            <Instructor label="how does it actually plan? walk with me">
-              <p className="mb-2">The robotics result sounds like sci-fi — "zero-shot planning in a lab it's never seen" — so let's strip it down until it's obviously not magic. The robot wants to reach a goal, and you hand it a single <Hi>photo</Hi> of the goal (block in the box). (Remember <Hi c={C.violet}>z</Hi> from "Why Latent" — the part of the future the context couldn't pin down? In a controllable world model that slot <em>is</em> the action: "if I do <Hi>this</Hi>, the latent state moves like so.")</p>
-              <p className="mb-2">"Plan" here means the <B>Cross-Entropy Method</B> (CEM) — there's no trained policy, just a search that repeats five steps:</p>
-              <ol className="mb-3" style={{ margin: "0 0 12px 20px" }}>
-                <li className="mb-1"><B>Sample</B> a few hundred random action sequences.</li>
-                <li className="mb-1"><B>Roll out</B> each one through the predictor to see where it lands in latent space.</li>
-                <li className="mb-1"><B>Score</B> each by distance to the goal <em>embedding</em> (not goal pixels).</li>
-                <li className="mb-1"><B>Keep the elites</B> — the best handful — refit a distribution to them, and resample around them.</li>
-                <li><B>Execute one action</B> (the first of the best plan), then look again and replan.</li>
-              </ol>
-              <p className="mb-2">Written out, it's just that loop:</p>
-              <CodeBlockInline />
-              <p className="mt-3">That's model-predictive control, and notice the key move on the scoring line: it compares <Hi>imagined embedding</Hi> to <Hi>goal embedding</Hi> — two short vectors — not imagined pixels to goal pixels. The same "do everything in representation space" trick from the very first section is what makes planning cheap enough to run on a real arm. <B>It's the same idea the whole way down.</B></p>
-            </Instructor>
-          </Reveal>
-
           <GuessGate
             onResolved={() => mark("g3")}
             question="Before you try the lab below — why can V-JEPA 2 plan ~15× faster than a diffusion world model like Cosmos?"
@@ -1667,11 +1937,28 @@ function CourseBody() {
               "It memorizes the solution to each task in advance",
             ]}
             correct={1}
-            explanation={<>Right. Both use the same Cross-Entropy Method search, but Cosmos generates full-resolution pixel predictions for every candidate plan (~4 min/action), while V-JEPA 2 compares short embedding vectors (~16 sec/action). Predicting in representation space isn't just cleaner — it's what makes real-time planning affordable.</>}
+            explanation={<>Right. Both use the same Cross-Entropy Method search, but Cosmos generates full-resolution pixel predictions for every candidate plan (~4 min/action), while V-JEPA 2 compares short embedding vectors (~16 sec/action). Predicting in representation space isn't just cleaner — it's what makes real-time planning affordable. Watch a search converge below, then we'll dissect the loop.</>}
           />
 
           <Reveal>
             <LatentPlanningLabT />
+          </Reveal>
+
+          <Reveal>
+            <Instructor label="so what was that search, exactly?">
+              <p className="mb-2">You just watched a cloud of guessed plans narrow onto the goal. Let's name what ran. The robot wants to reach a goal and you hand it a single <Hi>photo</Hi> of it (block in the box). (Remember <Hi c={C.violet}>z</Hi> from "Why Latent" — the part of the future the context couldn't pin down? In a controllable world model that slot <em>is</em> the action: "if I do <Hi>this</Hi>, the latent state moves like so.")</p>
+              <p className="mb-2">"Plan" here means the <B>Cross-Entropy Method</B> (CEM) — there's no trained policy, just a search that repeats five steps:</p>
+              <ol className="mb-3" style={{ margin: "0 0 12px 20px" }}>
+                <li className="mb-1"><B>Sample</B> a few hundred action sequences from a Gaussian over "good plans."</li>
+                <li className="mb-1"><B>Roll out</B> each one through the predictor to see where it lands in latent space.</li>
+                <li className="mb-1"><B>Score</B> each by distance to the goal <em>embedding</em> (not goal pixels).</li>
+                <li className="mb-1"><B>Keep the elites</B> — the best ~10% — and refit: move the Gaussian's center to their average and shrink it, so next round you sample closer to what worked.</li>
+                <li><B>Execute one action</B> (the first of the best plan), then look again and replan.</li>
+              </ol>
+              <p className="mb-2">Written out, it's just that loop:</p>
+              <CodeBlockInline />
+              <p className="mt-3">That's model-predictive control, and notice the key move on the scoring line: it compares <Hi>imagined embedding</Hi> to <Hi>goal embedding</Hi> — two short vectors — not imagined pixels to goal pixels. The same "do everything in representation space" trick from the very first section is what makes planning cheap enough to run on a real arm. <B>It's the same idea the whole way down.</B></p>
+            </Instructor>
           </Reveal>
           <Reveal>
             <div>
@@ -1680,9 +1967,9 @@ function CourseBody() {
           </Reveal>
         </Section>
 
-        {/* ---------------- 08 WORLD MODELS ---------------- */}
+        {/* ---------------- 10 WORLD MODELS ---------------- */}
         <Section id="worldmodels">
-          <Heading num="08" eyebrow="The destination"
+          <Heading id="worldmodels" num="10" eyebrow="The destination"
             title={<>All of this was building toward a <Hi>world model</Hi></>}
             intro="Every piece so far — latent prediction, the predictor, collapse prevention, action conditioning — exists to make one thing possible: a machine that learns how the world works and plans inside that understanding." />
 
@@ -1701,24 +1988,35 @@ function CourseBody() {
 
           <Reveal>
             <div>
-              <P>Step back and look at the whole arc. A <B>world model</B> is an internal simulator: encode what you observe into a latent state, predict how that state evolves (optionally given your actions), and then <Hi>plan by searching that prediction</Hi> instead of acting blindly in the real world. This was the centerpiece of LeCun's 2022 manifesto — the most complex of the six modules — and everything in the JEPA family is, in the end, a run at building it.</P>
+              <P><Xref to="models">§09</Xref> walked the family model by model. Now zoom out to the <em>idea</em> they were all building toward. A <B>world model</B> is an internal simulator: encode what you observe into a latent state, predict how that state evolves (optionally given your actions), and then <Hi>plan by searching that prediction</Hi> instead of acting blindly in the real world. This was the centerpiece of LeCun's 2022 manifesto — the most complex of the six modules — and everything in the JEPA family is, in the end, a run at building it.</P>
               <P>The recurring obstacle has a name you now know well: <B>collapse</B>. Training a world model end-to-end from raw pixels is fragile, because the encoder can cheat by mapping every frame to nearly the same embedding — prediction becomes trivial and the representation dies. The recent history of JEPA world models is essentially a set of different answers to "how do we get end-to-end training without collapse?"</P>
             </div>
           </Reveal>
 
-          <Reveal>
-            <Instructor label="the three ways to not collapse — and why it matters">
-              <p className="mb-2">There turned out to be three families of answer, and seeing them side by side is the whole story in miniature:</p>
-              <p className="mb-2"><B style={{}}>1 · Don't train the encoder at all.</B> <span style={{color:C.violet}}>DINO-WM</span> freezes a pretrained DINOv2 encoder and only learns the predictor. Can't collapse if you never update it — but you're stuck with whatever those frozen features happen to encode.</p>
-              <p className="mb-2"><B>2 · Train end-to-end, pile on regularizers.</B> <span style={{color:C.amber}}>PLDM</span> trains from pixels but needs a seven-term VICReg-style loss with a painful coefficient search to stay stable.</p>
-              <p><B>3 · Train end-to-end, with one principled regularizer.</B> <span style={{color:C.green}}>LeWorldModel</span> uses just next-embedding prediction + SIGReg — the provably-optimal Gaussian target from LeJEPA — and the fragility largely goes away. This is the synthesis the whole field was reaching for.</p>
-            </Instructor>
-          </Reveal>
+          <GuessGate
+            question="You want a world model trained end-to-end from pixels (so it can shape its own features). What's the price you pay versus freezing a pretrained encoder?"
+            options={[
+              "No price — end-to-end is strictly better",
+              "It can collapse — the encoder can cheat by mapping every frame to the same embedding",
+              "It's always less accurate than a frozen encoder",
+            ]}
+            correct={1}
+            explanation={<>Exactly — end-to-end power reintroduces the collapse risk a frozen encoder sidesteps for free. The four models below are four different answers to that one tension. Explore them, <em>then</em> we'll sort them.</>}
+          />
 
           <Reveal>
             <H3>The world-model landscape</H3>
             <P>Explore the four models that define the current frontier. Watch the same two questions — <em>frozen or end-to-end?</em> and <em>how do you stop collapse?</em> — separate them.</P>
             <WorldModelLandscape />
+          </Reveal>
+
+          <Reveal>
+            <Instructor label="so how do the four sort out?">
+              <p className="mb-2">If you watched the two axes, the field collapses into three families of answer:</p>
+              <p className="mb-2"><B>1 · Don't train the encoder at all.</B> <span style={{color:C.violet}}>DINO-WM</span> freezes a pretrained DINOv2 encoder and only learns the predictor. Can't collapse if you never update it — but you're stuck with whatever those frozen features happen to encode.</p>
+              <p className="mb-2"><B>2 · Train end-to-end, pile on regularizers.</B> <span style={{color:C.amber}}>PLDM</span> trains from pixels but needs a seven-term VICReg-style loss with a painful coefficient search to stay stable.</p>
+              <p><B>3 · Train end-to-end, with one principled regularizer.</B> <span style={{color:C.green}}>LeWorldModel</span> uses just next-embedding prediction + SIGReg — the provably-optimal Gaussian target from LeJEPA — and the fragility largely goes away. That's the synthesis the whole field was reaching for, and exactly where we land next.</p>
+            </Instructor>
           </Reveal>
 
           <Reveal>
@@ -1754,9 +2052,9 @@ function CourseBody() {
           </Reveal>
         </Section>
 
-        {/* ---------------- 09 RECAP ---------------- */}
+        {/* ---------------- 11 RECAP ---------------- */}
         <Section id="recap">
-          <Heading num="09" eyebrow="Lock it in"
+          <Heading id="recap" num="11" eyebrow="Lock it in"
             title={<>Retrieve everything — this is where it sticks</>}
             intro="One last pass. Recalling under mild effort beats re-reading every time — so test yourself before you move on." />
           <Checkpoint
@@ -1847,12 +2145,18 @@ function CourseBody() {
             <Instructor label="read it with me — three lines carry the whole idea">
               <p className="mb-2">Don't read it as 40 equal lines. Three moments are the entire architecture; the rest is plumbing:</p>
               <ul style={{ margin: "0 0 8px 20px" }}>
-                <li className="mb-1"><B>The <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>with torch.no_grad()</code> block</B> — the teacher gets no gradient and its targets are read off the <em>full</em> image. That stop-gradient is the anti-collapse lever.</li>
+                <li className="mb-1"><B>The <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>with torch.no_grad()</code> block</B> — the teacher gets no gradient and its targets are read off the <em>full</em> image. That stop-gradient is a key anti-collapse mechanism.</li>
                 <li className="mb-1"><B>The <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>sample_blocks()</code> scales</B> — one big context, four large targets. Shrink the targets to single patches and the task becomes texture-copying; the semantics die.</li>
                 <li><B>The <code style={{ color: C.cyan, background: C.ink3, padding: "1px 5px", borderRadius: 4 }}>mse(pred, tgt)</code> + EMA update</B> — the loss lives in embedding space, and the teacher only ever trails the student by 0.4% a step. No pixels, no negatives.</li>
               </ul>
               <p>If you change one thing first, make it the target scale — it's the line that most changes what the model learns.</p>
             </Instructor>
+          </Reveal>
+
+          <Reveal>
+            <H3>Final review</H3>
+            <P>One core question from every lecture, shuffled into a single graded deck. This is the spaced-retrieval payoff — answer from memory; if one stings, jump straight back to that lecture.</P>
+            <ReviewDeck />
           </Reveal>
 
           <Reveal>

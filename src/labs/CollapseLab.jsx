@@ -1,7 +1,7 @@
 import React, { useCallback } from "react";
 import Lab from "../widgets/Lab.jsx";
 import R from "../widgets/rllab.js";
-import { collapseMode, stepCloud } from "../logic/collapseSim.js";
+import { collapseMode, stepCloud, spread, offDiagonalSpread } from "../logic/collapseSim.js";
 
 /* The collapse simulator — toolkit port. 64 embeddings drift in the dark latent
    stage; toggle the two defenses and watch complete / dimensional / healthy. */
@@ -23,6 +23,11 @@ export default function CollapseLab() {
     const reseed = () => { pts = pts.map((p) => ({ ...p, x: p.hx + (Math.random() - 0.5) * 0.04, y: p.hy + (Math.random() - 0.5) * 0.04 })); };
     const col = { complete: R.C.orange, dimensional: R.C.violet, healthy: R.C.green };
 
+    // healthy reference = the spread of the "home" positions → that's 100%
+    const homes = pts.map((p) => ({ x: p.hx, y: p.hy }));
+    const refV = spread(homes) || 1, refC = offDiagonalSpread(homes) || 1;
+    const meter = R.meters(stage, ["variance (per-dim spread)", "off-diagonal spread"]);
+
     let raf = 0;
     const tick = () => {
       const mode = collapseMode(ema, vic);
@@ -34,6 +39,8 @@ export default function CollapseLab() {
         ctx.fillStyle = c; ctx.shadowColor = c; ctx.shadowBlur = (mode === "healthy" ? 8 : 4) * DPR; ctx.fill();
       });
       ctx.shadowBlur = 0;
+      meter.set(0, Math.round(R.clamp(spread(pts) / refV, 0, 1) * 100), R.C.orange);
+      meter.set(1, Math.round(R.clamp(offDiagonalSpread(pts) / refC, 0, 1) * 100), R.C.violet);
       raf = requestAnimationFrame(tick);
     };
 
@@ -48,12 +55,12 @@ export default function CollapseLab() {
     R.legend(stage, [[R.C.orange, "complete collapse"], [R.C.violet, "dimensional collapse"], [R.C.green, "healthy"]]);
 
     tick();
-    const onR = () => resize(); window.addEventListener("resize", onR);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", onR); };
+    const stopRO = R.watchResize(cv, () => resize());
+    return () => { cancelAnimationFrame(raf); stopRO(); };
   }, []);
 
   return (
     <Lab id="collapse" title="The collapse simulator" setup={setup}
-      note="A JEPA grades itself on predicting its own embeddings — so the lazy solution is to make them all identical. Start healthy, switch the defenses off and watch the space die, then switch them back and watch it recover." />
+      note="A JEPA grades itself on predicting its own embeddings — so the lazy solution is to make them all identical. Start healthy, switch the defenses off and watch the space die, then switch them back and watch it recover. Track the two meters: complete collapse crashes BOTH; dimensional collapse keeps variance up but sends off-diagonal spread to zero." />
   );
 }

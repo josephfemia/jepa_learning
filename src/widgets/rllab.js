@@ -66,6 +66,43 @@ export function btn(host, label, cls, on) { var b = ce('button', 'lab-btn' + (cl
  */
 export function legend(host, items) { var l = ce('div', 'lab-legend'); for (var i = 0; i < items.length; i++) { var s = ce('span'); var sw = ce('i'); sw.style.background = items[i][0]; s.appendChild(sw); s.appendChild(document.createTextNode(items[i][1])); l.appendChild(s); } host.appendChild(l); return l; }
 
+/**
+ * A stack of live progress meters on a dark stage. labels: array of strings.
+ * Returns { set(i, pct, lowColor) } — bar i fills to pct%, green when healthy,
+ * lowColor when it crashes below ~22% (so collapse is *seen* as a number).
+ */
+export function meters(host, labels) {
+  var wrap = ce('div'); wrap.style.cssText = 'margin-top:12px;display:flex;flex-direction:column;gap:8px';
+  var bars = labels.map(function (label) {
+    var r = ce('div'); r.style.cssText = 'display:flex;align-items:center;gap:9px;font-family:IBM Plex Mono,ui-monospace,monospace;font-size:10.5px;color:#C8CFDA';
+    var lab = ce('span', null, label); lab.style.cssText = 'width:172px;flex-shrink:0';
+    var track = ce('div'); track.style.cssText = 'flex:1;height:7px;border-radius:4px;background:rgba(120,140,200,0.18);overflow:hidden';
+    var fill = ce('div'); fill.style.cssText = 'height:100%;width:0%;border-radius:4px;transition:width .1s linear';
+    track.appendChild(fill);
+    var pct = ce('span', null, '—'); pct.style.cssText = 'width:36px;text-align:right;flex-shrink:0';
+    r.appendChild(lab); r.appendChild(track); r.appendChild(pct); wrap.appendChild(r);
+    return { fill: fill, pct: pct };
+  });
+  host.appendChild(wrap);
+  return { set: function (i, p, lowColor) { var m = bars[i]; if (!m) return; m.fill.style.width = p + '%'; m.fill.style.background = p < 22 ? (lowColor || C.orange) : C.green; m.pct.textContent = p + '%'; } };
+}
+
+/**
+ * Watch an element for size changes and run cb (e.g. to re-size a canvas).
+ * Crucial for canvas labs: they mount inside a display:none lecture (offsetWidth
+ * 0), so without this the canvas stays 0-wide until a window resize. ResizeObserver
+ * fires when the lecture becomes visible (0 → real width). Returns a disconnect fn.
+ */
+export function watchResize(el, cb) {
+  if (typeof ResizeObserver !== 'undefined') {
+    var ro = new ResizeObserver(function () { cb(); });
+    ro.observe(el);
+    return function () { ro.disconnect(); };
+  }
+  window.addEventListener('resize', cb);
+  return function () { window.removeEventListener('resize', cb); };
+}
+
 /** Box-Muller normal random variate. */
 export function randn() { var u = 0, v = 0; while (u === 0) u = Math.random(); while (v === 0) v = Math.random(); return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v); }
 
@@ -89,4 +126,4 @@ export var C = {
 };
 
 /** Default export — mirrors the toolkit surface so widgets can do R.E(...) etc. */
-export default { E, TX, SVG, clr, ce, clamp, lerp, slider, btn, legend, randn, animate, C };
+export default { E, TX, SVG, clr, ce, clamp, lerp, slider, btn, legend, meters, watchResize, randn, animate, C };

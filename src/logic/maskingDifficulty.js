@@ -5,11 +5,13 @@
 import { clamp } from "../logic.js";
 
 /* score ∈ [0,1]: 0 = pure texture interpolation, 1 = strongly semantic.
-   opts: { scale (target block area fraction), count (# target blocks) } */
-export function semanticScore({ scale = 0.17, count = 4 } = {}) {
+   opts: { scale (target block area fraction), count (# target blocks), aspect (w/h) } */
+export function semanticScore({ scale = 0.17, count = 4, aspect = 1 } = {}) {
   const sizeTerm = clamp((scale - 0.04) / (0.18 - 0.04), 0, 1); // small→0; I-JEPA's ~0.15–0.2 → ~semantic
   const countPenalty = clamp((count - 4) / 16, 0, 0.25);       // many tiny blocks shade toward texture
-  return clamp(sizeTerm - countPenalty, 0, 1);
+  // very elongated blocks become thin slivers — easier to interpolate from neighbors → less semantic
+  const aspectPenalty = clamp(Math.abs(Math.log2(aspect)) * 0.12, 0, 0.2);
+  return clamp(sizeTerm - countPenalty - aspectPenalty, 0, 1);
 }
 
 export function difficultyLabel(score) {

@@ -206,4 +206,52 @@
   /* ---------- misc ---------- */
   .toggle-btn{font-family:var(--sans);font-weight:600;font-size:12.5px;border:1.5px solid var(--line);background:#fff;color:var(--ink);border-radius:7px;padding:8px 14px;cursor:pointer}
   .toggle-btn:hover{border-color:var(--ink)}
+
+  .xref{color:var(--cobalt);cursor:pointer;border-bottom:1px dotted var(--cobalt);font-weight:600}
+  .xref:hover{color:var(--cobalt-dark);border-bottom-style:solid}
+
+  /* ---------- syllabus / course structure ---------- */
+  .lec-meta{margin:0 0 26px}
+  .meta-strip{display:flex;flex-wrap:wrap;gap:8px 10px;margin:0 0 16px}
+  .meta-strip .chip{font-family:var(--mono);font-size:11px;line-height:1.35;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:999px;padding:5px 12px}
+  .meta-strip .chip b{color:var(--cobalt-dark);font-weight:600}
+  .callout.objectives{border-left:4px solid var(--cobalt);background:#F4F6FE}
+  .callout.objectives .co-label{color:var(--cobalt)}
+  .callout.takeaways{border-left:4px solid var(--signal);background:#FFF8F3;margin-top:42px}
+  .callout.takeaways .co-label{color:var(--signal)}
+  .callout.objectives ul,.callout.takeaways ul{margin:6px 0 0;padding-left:20px}
+  .callout.objectives li,.callout.takeaways li{margin:5px 0;font-size:14.5px;line-height:1.5}
+  .callout .readings{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-top:12px;padding-top:10px;border-top:1px dashed var(--line)}
+  .callout .readings a{color:var(--cobalt)}
+
+  .syllabus{margin:38px 0 0}
+  .syllabus > h3{font-family:var(--sans);font-weight:700;font-size:20px;margin:0 0 4px;letter-spacing:-0.01em}
+  .syllabus .syl-sub{font-size:14px;color:var(--muted);margin:0 0 8px}
+  .unit{margin:22px 0;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+  .unit-head{display:flex;gap:14px;align-items:flex-start;padding:15px 18px;background:var(--panel);border-bottom:1px solid var(--line)}
+  .unit-roman{font-family:var(--mono);font-weight:600;font-size:13px;color:#fff;background:var(--ink);border-radius:7px;padding:5px 9px;flex-shrink:0;letter-spacing:.04em}
+  .unit-head h4{font-family:var(--sans);font-weight:700;font-size:15.5px;margin:1px 0 3px}
+  .unit-head p{font-size:13.5px;color:var(--muted);margin:0;line-height:1.5}
+  .unit-lectures{display:flex;flex-direction:column}
+  .syl-lec{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-top:1px solid var(--panel);cursor:pointer;padding:11px 18px;font-family:var(--sans)}
+  .syl-lec:first-child{border-top:0}
+  .syl-lec:hover{background:var(--paper)}
+  .syl-idx{font-family:var(--mono);font-size:11px;color:var(--muted);width:26px;flex-shrink:0}
+  .syl-title{font-size:14.5px;font-weight:600;color:var(--ink);flex:1;min-width:0}
+  .syl-meta{font-family:var(--mono);font-size:10.5px;color:var(--muted);flex-shrink:0;white-space:nowrap}
+
+  /* ---------- final review deck ---------- */
+  .review-deck{margin:26px 0;border:1px solid var(--line);border-radius:12px;background:#fff;overflow:hidden}
+  .rd-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:13px 18px;background:var(--ink);color:#fff}
+  .rd-head .rd-title{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.13em;text-transform:uppercase}
+  .rd-head .rd-score{font-family:var(--mono);font-size:12px;color:#9FB4FF}
+  .rd-body{padding:18px}
+  .rd-tag{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--cobalt-dark);background:var(--panel);border:1px solid var(--line);border-radius:5px;padding:2px 7px;display:inline-block;margin-bottom:10px}
+  .rd-q{font-family:var(--sans);font-weight:600;font-size:16px;margin:0 0 12px;line-height:1.5}
+  .rd-opt{display:block;width:100%;text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:10px 14px;margin-bottom:8px;cursor:pointer;font-family:var(--serif);font-size:15px;color:var(--ink);line-height:1.5}
+  .rd-opt:hover{border-color:var(--cobalt);background:#F4F6FE}
+  .rd-opt:disabled{cursor:default}
+  .rd-opt.right{background:var(--right-soft);border-color:var(--right)}
+  .rd-opt.wrong{background:var(--wrong-soft);border-color:var(--wrong)}
+  .rd-foot{display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:13px 18px;border-top:1px solid var(--line);background:var(--paper);font-family:var(--mono);font-size:12px;color:var(--muted)}
 }

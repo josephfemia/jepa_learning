@@ -46,11 +46,15 @@ src/
   main.jsx              # React root → renders <JepaCourse />
   index.css             # shared design system (tokens, sidebar, .lecture pagination, .lab stage, …)
   theme.js              # single LIGHT palette + ThemeContext + useTheme() (cobalt/orange tokens)
-  data.js               # module-scope course data (SECTIONS, NAV_GROUPS, PAGES, PAGE_LABEL, SECTION_CHECK, TIMELINE, MODELS, …)
+  data.js               # course data: SECTIONS, NAV_GROUPS, PAGES, PAGE_LABEL, SECTION_CHECK, TIMELINE, MODELS,
+                        #   + UNITS (syllabus modules), LECTURE_META (objectives/takeaways/time/difficulty/readings),
+                        #   REVIEW (final-exam deck), SOURCES/SOURCE_ORDER (shared citations), GLOSSARY, WORLD_MODELS
   logic.js              # pure helpers + testable logic (clamp/lerp, scoreQuiz, planCEM, l1Energy)
-  logic/                # per-lab numeric cores + vitest tests (collapseSim, energyLandscape, reconTax)
-  widgets/              # rllab.js (toolkit) + animate.js + Lab.jsx (React wrapper)
-  labs/                 # toolkit-based interactive labs (CollapseLab, EnergyLandscapeLab, VICRegIsolatorLab, LatentPlanningLab, PixelVsLatentLab)
+  logic/                # per-lab numeric cores + vitest tests (collapseSim, energyLandscape, reconTax, minOverZ, hjepaHorizon)
+  widgets/              # rllab.js (toolkit; incl. meters() + watchResize() for canvas labs) + animate.js + Lab.jsx
+  labs/                 # toolkit-based interactive labs: CollapseLab, EnergyLandscapeLab, VICRegIsolatorLab,
+                        #   LatentPlanningLab, PixelVsLatentLab, MaskingDifficultyLab, LatentGeometryLab,
+                        #   + MinOverZLab, EmaLagLab, HJepaHorizonLab, ForcesLab (3b1b-style explainers)
   JepaCourse.jsx        # course shell (sidebar SPA) + remaining components + the lecture bodies
   Notebooks.jsx         # the #labs page: renders the executed .ipynb (md+code+outputs)
 public/notebooks/       # executed jepa-from-scratch/*.ipynb, served at /notebooks
@@ -61,7 +65,7 @@ README.md               # canonical reference (READ THIS)
 **Two pages, one tiny hash router** (in the `JepaCourse` default export): `#labs` →
 `NotebooksPage`; anything else → `CourseBody`.
 
-**Navigation model = paginated sidebar SPA** (matching `robotic_learning`): the ten lectures are
+**Navigation model = paginated sidebar SPA** (matching `robotic_learning`): the eleven lectures are
 grouped in a left sidebar; only the current lecture is visible (`.lecture` / `.lecture.visible`),
 and a **Prev/Next pager + Mark-complete** bar at the foot of each threads the *separate* lectures
 into one cohesive, naturally-flowing course. A "Start here" welcome page is the first page; the
@@ -85,8 +89,10 @@ Lecture completion drives the sidebar checkmarks + progress: a page is "done" wh
 in `logic.js` / `logic/` so components import the exact code the tests cover.
 
 ### Lectures (the `SECTIONS` array, in order, plus a `start` welcome page)
-`idea` → `why` → `build` → `collapse` → `depth` (Under the Hood, eyebrow "04½") →
-`compare` → `history` → `models` → `worldmodels` → `recap`. `PAGES` is the linear pager order.
+`idea` → `why` → `build` → `collapse` → `depth` (Under the Hood) → `depth2` (Frontier & Eval) →
+`compare` → `history` → `models` → `worldmodels` → `recap`. Eleven lectures, numbered **01–11**
+consistently in both the sidebar (`PAGE_IDX`) and the lecture headings (`Heading num=`). `PAGES` is
+the linear pager order.
 
 ## Conventions & gotchas (read before editing)
 
@@ -106,6 +112,11 @@ in `logic.js` / `logic/` so components import the exact code the tests cover.
   don't build class names by concatenation, or JIT won't emit them.
 - **Canvas effects** must respect `prefers-reduced-motion` and clean up `requestAnimationFrame` on
   unmount (the toolkit's `animate.js` is reduced-motion-aware).
+- **Canvas labs MUST use `R.watchResize(cv, …)`, not a bare `window.resize` listener.** Lectures are
+  all in the DOM (toggled by CSS `display:none`), so a canvas mounts at `offsetWidth === 0` and would
+  render blank until a window resize. `watchResize` (a ResizeObserver) re-sizes when the lecture
+  becomes visible. SVG labs are immune (viewBox scales). Re-draw inside the callback if the lab isn't
+  already animating every frame.
 - **Diagrams are schematics**, not literal training traces — keep illustrative simplifications labeled.
 - **Accuracy bar:** every numeric/named claim must trace to a primary source (see the
   "Content accuracy reference" in `README.md`). Prefer the paper over blog coverage; hedge research

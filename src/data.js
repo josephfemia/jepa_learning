@@ -17,7 +17,7 @@ export const SECTIONS = [
   { id: "recap", label: "Recap" },
 ];
 
-/* Paginated-lecture nav (robotic_learning style): a welcome page, then the ten
+/* Paginated-lecture nav (robotic_learning style): a welcome page, then the eleven
    lectures grouped into a sidebar. PAGES is the linear prev/next order. */
 export const START = { id: "start", label: "Start here" };
 
@@ -33,16 +33,230 @@ export const NAV_GROUPS = [
 // linear order for the prev/next pager and "jump to next unfinished"
 export const PAGES = ["start", ...SECTIONS.map((s) => s.id)];
 
-// id → short sidebar/topbar label (start + the ten lectures)
+// id → short sidebar/topbar label (start + the eleven lectures)
 export const PAGE_LABEL = { start: START.label, ...Object.fromEntries(SECTIONS.map((s) => [s.id, s.label])) };
 
 // which completion key (in the `done` map) marks each section "done" — drives the
 // nav checkmarks. Sections gain a check once their self-test (predict-first guess,
 // recall prompt, or final quiz) is answered.
 export const SECTION_CHECK = {
-  idea: "g1", collapse: "g2", compare: "r-compare", history: "r-history",
+  idea: "g1", why: "g-why", build: "g-build", collapse: "g2",
+  depth: "r-depth", compare: "r-compare", history: "r-history",
   models: "g3", worldmodels: "r-worldmodels", recap: "quiz",
 };
+
+/* Primary sources, keyed so per-lecture readings + the footer share one list. */
+export const SOURCES = {
+  cpc: ["van den Oord et al. — Contrastive Predictive Coding (2018)", "https://arxiv.org/abs/1807.03748"],
+  worldmodels: ["Ha & Schmidhuber — World Models (2018)", "https://arxiv.org/abs/1803.10122"],
+  byol: ["Grill et al. — BYOL (2020)", "https://arxiv.org/abs/2006.07733"],
+  simsiam: ["Chen & He — SimSiam (2021)", "https://arxiv.org/abs/2011.10566"],
+  vicreg: ["Bardes, Ponce & LeCun — VICReg (2022)", "https://arxiv.org/abs/2105.04906"],
+  path: ["LeCun — A Path Towards Autonomous Machine Intelligence (2022)", "https://openreview.net/pdf?id=BZ5a1r-kVsf"],
+  ijepa: ["Assran et al. — I-JEPA, CVPR (2023)", "https://arxiv.org/abs/2301.08243"],
+  vjepa: ["Bardes et al. — V-JEPA (2024)", "https://arxiv.org/abs/2404.08471"],
+  dinowm: ["Zhou et al. — DINO-WM (2024)", "https://arxiv.org/abs/2411.04983"],
+  pldm: ["Sobal et al. — PLDM / latent planning (2025)", "https://arxiv.org/abs/2502.14819"],
+  vjepa2: ["Assran, Ballas et al. — V-JEPA 2 (2025)", "https://arxiv.org/abs/2506.09985"],
+  lejepa: ["Balestriero & LeCun — LeJEPA (2025)", "https://arxiv.org/abs/2511.08544"],
+  lewm: ["Maes, …, LeCun & Balestriero — LeWorldModel (2026)", "https://arxiv.org/abs/2603.19312"],
+};
+export const SOURCE_ORDER = ["cpc", "worldmodels", "byol", "simsiam", "vicreg", "path", "ijepa", "vjepa", "dinowm", "pldm", "vjepa2", "lejepa", "lewm"];
+
+/* Course units (modules) — group the eleven lectures into a syllabus. */
+export const UNITS = [
+  { roman: "I", title: "The Core Idea", blurb: "What a JEPA predicts, and why moving the loss into latent space changes everything.", lectures: ["idea", "why", "build", "collapse"] },
+  { roman: "II", title: "Under the Hood", blurb: "The energy formulation, the real loss functions, the masking algorithm, and how representations are measured.", lectures: ["depth", "depth2"] },
+  { roman: "III", title: "In Context", blurb: "How JEPA sits against generative and contrastive learning — and the lineage that produced it.", lectures: ["compare", "history"] },
+  { roman: "IV", title: "The Frontier", blurb: "The model family, model by model, and the world-model program the whole idea was built to power.", lectures: ["models", "worldmodels"] },
+];
+
+/* Per-lecture syllabus metadata: objectives, takeaways, est. minutes, difficulty
+   tier, prerequisites, and primary readings (keys into SOURCES). Drives the
+   objectives box at the top of each lecture and the takeaways box at the foot. */
+export const LECTURE_META = {
+  idea: {
+    minutes: 5, difficulty: "Intro", prereqs: ["gradient descent", "what an embedding is"],
+    objectives: [
+      "Say what a JEPA predicts, and how that differs from a generative model",
+      "Define self-supervised learning and “embedding” in one sentence each",
+      "State the course thesis: predict the representation, not the pixels",
+    ],
+    takeaways: [
+      "A JEPA predicts the meaning (an embedding) of the hidden part of its input, not the pixels",
+      "Where the loss lives — pixel space vs. embedding space — is the whole game",
+      "Self-supervised learning lets a model learn from unlabeled data by hiding part of itself",
+    ],
+    readings: ["path"],
+  },
+  why: {
+    minutes: 6, difficulty: "Core", prereqs: ["§01 The Idea"],
+    objectives: [
+      "Explain the “reconstruction tax” a generative model pays on every pixel",
+      "Say why a learned target lets the encoder drop unpredictable detail",
+      "Read a JEPA training step as code and spot the anti-collapse term",
+    ],
+    takeaways: [
+      "Reconstructing pixels wastes capacity on detail no model can predict",
+      "A learned target frees the encoder to keep meaning and discard noise",
+      "JEPA is an energy-based model: low energy = compatible, no normalization needed",
+    ],
+    readings: ["path"],
+  },
+  build: {
+    minutes: 6, difficulty: "Core", prereqs: ["§02 Why Latent"],
+    objectives: [
+      "Name the three networks of a JEPA and what each does",
+      "Explain why the architecture is deliberately asymmetric (stop-gradient + EMA)",
+      "Describe what a Vision Transformer feeds the encoder (patches → tokens)",
+    ],
+    takeaways: [
+      "Context encoder (kept), target encoder (EMA teacher), predictor (the bridge)",
+      "The asymmetry exists to stop the two encoders colluding into collapse",
+      "The EMA teacher lags the student on purpose, so targets stay un-gameable",
+    ],
+    readings: ["ijepa"],
+  },
+  collapse: {
+    minutes: 6, difficulty: "Core", prereqs: ["§03 Architecture"],
+    objectives: [
+      "Define representation collapse and its two flavors (complete, dimensional)",
+      "Explain why a self-graded objective invites the collapse shortcut",
+      "Connect each anti-collapse defense to the failure it prevents",
+    ],
+    takeaways: [
+      "Collapse = mapping everything to one point (or one tiny subspace) to trivialize the loss",
+      "Complete collapse kills all spread; dimensional collapse hides as a healthy-looking line",
+      "Every odd JEPA design choice exists to stop the model cheating its own exam",
+    ],
+    readings: ["vicreg", "simsiam", "byol"],
+  },
+  depth: {
+    minutes: 9, difficulty: "Advanced", prereqs: ["§04 Collapse"],
+    objectives: [
+      "Write a JEPA's energy F(x,y) = minₖ E and explain the min over z",
+      "Contrast the two ways to shape an energy landscape (contrastive vs. regularized)",
+      "Read VICReg's three terms in code and map each to a collapse it prevents",
+    ],
+    takeaways: [
+      "min over z lets one context hold many valid futures — no probability needed",
+      "Contrastive pushes up negatives (needs many); regularized constrains statistics (needs none)",
+      "VICReg = variance (kills complete) + covariance (kills dimensional) + invariance (pulls views together)",
+    ],
+    readings: ["vicreg", "path"],
+  },
+  depth2: {
+    minutes: 9, difficulty: "Frontier", prereqs: ["§05 Under the Hood"],
+    objectives: [
+      "State LeJEPA's claim and its assumptions (isotropic Gaussian, linear probes)",
+      "Explain SIGReg via the Cramér–Wold “every shadow is a circle” intuition",
+      "List how a frozen representation is evaluated and why those probes work",
+    ],
+    takeaways: [
+      "LeJEPA proves an isotropic Gaussian minimizes worst-case linear-probe risk",
+      "SIGReg enforces it cheaply by testing 1-D projections — no EMA, stop-grad, or negatives",
+      "If a linear probe or k-NN can read labels off frozen features, the representation is good",
+    ],
+    readings: ["lejepa"],
+  },
+  compare: {
+    minutes: 5, difficulty: "Core", prereqs: ["§02 Why Latent"],
+    objectives: [
+      "Say where generative, contrastive, and JEPA models each compute their loss",
+      "Explain why “no negatives” is a selling point",
+      "Name JEPA's honest open questions (slow features, distractors)",
+    ],
+    takeaways: [
+      "Generative → pixel loss; contrastive → needs negatives; JEPA → latent loss, no negatives",
+      "Contrastive's apparatus (positives, negatives, big batches) is exactly what JEPA drops",
+      "JEPA isn't automatic — target construction and masking still decide whether it works",
+    ],
+    readings: ["path", "cpc"],
+  },
+  history: {
+    minutes: 4, difficulty: "Intro", prereqs: ["§04 Collapse"],
+    objectives: [
+      "Trace the lineage from energy-based models to today's JEPA world models",
+      "Explain how each step's problem motivated the next idea",
+      "Place the 2022 “Path” manifesto and its six-module agent in context",
+    ],
+    takeaways: [
+      "JEPA's history is largely a history of anti-collapse techniques",
+      "Each milestone fixed the previous one's blocking problem, not a random improvement",
+      "The predictor is one module (the world model) of a larger proposed autonomous agent",
+    ],
+    readings: ["cpc", "worldmodels", "byol", "vicreg", "path"],
+  },
+  models: {
+    minutes: 7, difficulty: "Advanced", prereqs: ["§03 Architecture", "§05 Under the Hood"],
+    objectives: [
+      "Say what each model (I-JEPA → V-JEPA → V-JEPA 2) added",
+      "Walk through latent planning with CEM step by step",
+      "Explain why latent scoring makes real-time robot planning affordable",
+    ],
+    takeaways: [
+      "Each model adds exactly one thing the last lacked: time, scale, control",
+      "Planning = sample action sequences, score by latent distance to goal, keep elites, replan",
+      "Scoring embeddings (not rendered pixels) is the ~15× speedup that runs on a real arm",
+    ],
+    readings: ["ijepa", "vjepa", "vjepa2"],
+  },
+  worldmodels: {
+    minutes: 7, difficulty: "Frontier", prereqs: ["§09 The Models"],
+    objectives: [
+      "Define a world model and why collapse is its central training obstacle",
+      "Compare the three ways to train one without collapse",
+      "Explain how LeWorldModel ties the whole program together",
+    ],
+    takeaways: [
+      "An action-conditioned predictor is a world model you plan against instead of acting blindly",
+      "Frozen encoder (safe), end-to-end + many regularizers (fragile), or end-to-end + SIGReg (the synthesis)",
+      "LeWorldModel: end-to-end from pixels, two-term loss, ~15M params — stable and small",
+    ],
+    readings: ["dinowm", "pldm", "vjepa2", "lewm"],
+  },
+  recap: {
+    minutes: 5, difficulty: "Review", prereqs: ["all lectures"],
+    objectives: [
+      "Reconstruct the whole argument from thesis to world models in your own words",
+      "Pass the final review covering every lecture's core check",
+      "Know the open questions and where the research is heading",
+    ],
+    takeaways: [
+      "Predict the representation, not the pixels — then plan against the predictor",
+      "Collapse is the recurring enemy; the field's history is its defenses",
+      "The program runs from one image (I-JEPA) to a robot planning zero-shot (V-JEPA 2) to a clean world model (LeWM)",
+    ],
+    readings: [],
+  },
+};
+
+/* Final review — one core question per lecture, aggregated into a graded deck.
+   Mirrors each lecture's predict-first check so the review is true spaced retrieval. */
+export const REVIEW = [
+  { id: "idea", q: "Where does a JEPA compute its training loss?",
+    options: ["In pixel space, like a generative model", "In embedding (representation) space", "Against human-provided labels"], correct: 1 },
+  { id: "why", q: "Why does reconstructing raw pixels charge a generative model a “tax”?",
+    options: ["It must spend capacity predicting detail it can never guess", "Pixels are expensive to store", "It can't run on a GPU"], correct: 0 },
+  { id: "build", q: "Why is the target encoder a slow EMA copy with a stop-gradient?",
+    options: ["To save memory", "So the two encoders can't collude into collapse", "To render pixels faster"], correct: 1 },
+  { id: "collapse", q: "What is the laziest way for a JEPA to drive its loss to zero?",
+    options: ["Use a bigger predictor", "Map every input to the same embedding", "Lower the learning rate"], correct: 1 },
+  { id: "depth", q: "What does the min over z in F(x,y) = minₖ E let a JEPA represent?",
+    options: ["A single deterministic future", "Several valid futures, with no probability needed", "The exact pixels of the future"], correct: 1 },
+  { id: "depth2", q: "What distribution does LeJEPA's SIGReg push the embeddings toward?",
+    options: ["A one-hot code", "An isotropic Gaussian", "A uniform grid"], correct: 1 },
+  { id: "compare", q: "What apparatus does JEPA avoid that contrastive learning needs?",
+    options: ["Negatives, big batches, and hand-crafted augmentations", "Gradient descent", "Any neural network at all"], correct: 0 },
+  { id: "history", q: "Most of JEPA's history is, in effect, a history of…",
+    options: ["bigger datasets", "anti-collapse techniques", "faster GPUs"], correct: 1 },
+  { id: "models", q: "Why can V-JEPA 2 plan ~15× faster than a diffusion world model like Cosmos?",
+    options: ["It uses a bigger inference cluster", "It scores plans by comparing embeddings, not rendering pixels", "It memorizes each task in advance"], correct: 1 },
+  { id: "worldmodels", q: "How does LeWorldModel train end-to-end from pixels without collapse?",
+    options: ["By freezing a pretrained encoder", "Next-embedding prediction + SIGReg — one regularizer", "Seven hand-tuned loss terms"], correct: 1 },
+  { id: "recap", q: "The course thesis, in one line:",
+    options: ["Predict the pixels as precisely as possible", "Predict the representation, not the pixels", "Always use the largest model available"], correct: 1 },
+];
 
 /* Discovery timeline — each step's problem motivates the next idea. */
 export const TIMELINE = [
@@ -86,8 +300,12 @@ export const MODELS = [
 
 /* Click-to-expand key terms. */
 export const GLOSSARY = [
+  ["Self-supervised learning", "Training with no human labels: the data creates its own supervision by hiding part of itself and asking the model to predict the missing part. This is what lets you learn from a billion unlabeled video frames or images."],
   ["Embedding / representation", "A vector of numbers a network produces to describe an input. After training, directions in this space carry meaning (object identity, motion, etc.)."],
   ["Latent space", "The abstract space where embeddings live. 'Predicting in latent space' = predicting these vectors instead of raw pixels or tokens."],
+  ["Vision Transformer (ViT) / patches", "The image encoder used in every JEPA: it splits an image into a grid of small square patches (e.g. 14×14 px), turns each patch into a token vector, and processes the set like a language transformer processes words. 'Encode the visible patches' = run the ViT on the patches you didn't hide."],
+  ["Negatives & augmentations", "Contrastive-learning machinery. Augmentations are hand-designed distortions (crop, recolor) that turn one image into a 'positive' pair; negatives are unrelated images pushed far apart. They need big batches — and JEPA needs neither."],
+  ["Linear probe / k-NN eval", "Ways to measure a frozen representation. Linear probe: freeze the encoder, train only a linear classifier on top. k-NN: label a new point by its nearest neighbors in embedding space (no training). If a dumb readout can recover the labels, the embedding already encodes the meaning."],
   ["Context / target", "Context is the visible part of an input; target is the hidden part whose representation the model must predict."],
   ["Predictor", "The network that maps the context embedding (plus target position, and optionally an action or latent z) to a predicted target embedding. Becomes the world model."],
   ["EMA target encoder", "A 'teacher' whose weights are an exponential moving average of the trained 'student' encoder, with gradients stopped. Provides stable targets and fights collapse."],
